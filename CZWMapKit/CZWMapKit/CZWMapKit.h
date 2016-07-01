@@ -20,6 +20,11 @@
 #import "BaiduMapAPI/BaiduMapAPI_Location.framework/Headers/BMKLocationComponent.h"
 #import "CZWMapView.h"
 
+#define kCZWCacheAddressDidChange @"CZWCacheAddressDidChange"
+#define kCZWCacheCityDidChange @"CZWCacheCityDidChange"
+#define kCZWCacheUserLocationDidChange @"CZWCacheUserLocationDidChange"
+
+
 #define kCZWMapKit  [CZWMapKit shareMapKit]
 #define kAppMapKey @"RiBS6xnsj6Qyr9Q7rwTpyLj7"  //启动秘钥
 
@@ -47,6 +52,7 @@ typedef NS_ENUM(NSUInteger, CZWLocatingMode) {
 @end
 @interface CZWMapKit : NSObject
 @property (weak, nonatomic) id <CZWMapKitLocationDelegate> locationDelegate;
+@property (assign, nonatomic, readonly) CLAuthorizationStatus authorizationStatus;
 
 @property (strong, nonatomic, readonly) CLLocation *cacheUserLocation;
 @property (strong, nonatomic, readonly) NSString *cacheCity;
@@ -61,12 +67,20 @@ typedef NS_ENUM(NSUInteger, CZWLocatingMode) {
  *  开启定位
  */
 - (void)czw_startLocating:(id<CZWMapKitLocationDelegate>)delegate showInView:(UIView *)view locatingMode:(CZWLocatingMode)mode;
+/**
+ *  当CZWLocatingMode是CZWLocatingAlways时要手动停止
+ */
 - (void)czw_stopLocating;
 
 /**
  *  开启反地理编码
  */
 - (void)czw_reverseGeoCode:(CLLocationCoordinate2D)coor;
+
+/**
+ *  poi查询
+ */
+- (void)czw_searchPoi:(NSString *)keyword pageCapacity:(NSNumber *)pageCapacity succeedBlock:(void (^)(BMKPoiResult *))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode))failureBlock;
 
 #pragma mark - global setting
 - (void)czw_setUpMapManager;

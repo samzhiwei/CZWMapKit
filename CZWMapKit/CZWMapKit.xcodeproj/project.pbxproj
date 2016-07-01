@@ -71,7 +71,7 @@
 		519635751D24CFDA00A28DD1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		519635771D24D08700A28DD1 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		5196357C1D24E96500A28DD1 /* libstdc++.6.0.9.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libstdc++.6.0.9.tbd"; path = "usr/lib/libstdc++.6.0.9.tbd"; sourceTree = SDKROOT; };
-		5196357E1D24EA7000A28DD1 /* mapapi.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; name = mapapi.bundle; path = CZWMapKit/BaiduMapAPI/BaiduMapAPI_Map.framework/Resources/mapapi.bundle; sourceTree = "<group>"; };
+		5196357E1D24EA7000A28DD1 /* mapapi.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; name = mapapi.bundle; path = BaiduMapAPI/BaiduMapAPI_Map.framework/Resources/mapapi.bundle; sourceTree = "<group>"; };
 		519635801D24F11000A28DD1 /* CZWMapView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CZWMapView.h; sourceTree = "<group>"; };
 		519635811D24F11000A28DD1 /* CZWMapView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CZWMapView.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -110,20 +110,6 @@
 		51950D151D24B0F400092828 = {
 			isa = PBXGroup;
 			children = (
-				5196357E1D24EA7000A28DD1 /* mapapi.bundle */,
-				5196357C1D24E96500A28DD1 /* libstdc++.6.0.9.tbd */,
-				519635771D24D08700A28DD1 /* libsqlite3.tbd */,
-				519635751D24CFDA00A28DD1 /* Foundation.framework */,
-				519635731D24CFD400A28DD1 /* UIKit.framework */,
-				519635711D24CFCF00A28DD1 /* SystemConfiguration.framework */,
-				5196356F1D24CFC700A28DD1 /* CoreLocation.framework */,
-				5196356D1D24CFBF00A28DD1 /* OpenGLES.framework */,
-				5196356B1D24CFB800A28DD1 /* Security.framework */,
-				519635691D24CFB000A28DD1 /* CoreTelephony.framework */,
-				519635671D24CFA800A28DD1 /* libsqlite3.0.tbd */,
-				519635651D24CFA000A28DD1 /* CoreGraphics.framework */,
-				519635631D24CF9700A28DD1 /* QuartzCore.framework */,
-				519635611D24CF8F00A28DD1 /* MessageUI.framework */,
 				51950D201D24B0F400092828 /* CZWMapKit */,
 				51950D1F1D24B0F400092828 /* Products */,
 			);
@@ -161,6 +147,20 @@
 		51950D211D24B0F400092828 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				5196357E1D24EA7000A28DD1 /* mapapi.bundle */,
+				5196357C1D24E96500A28DD1 /* libstdc++.6.0.9.tbd */,
+				519635771D24D08700A28DD1 /* libsqlite3.tbd */,
+				519635751D24CFDA00A28DD1 /* Foundation.framework */,
+				519635731D24CFD400A28DD1 /* UIKit.framework */,
+				519635711D24CFCF00A28DD1 /* SystemConfiguration.framework */,
+				5196356F1D24CFC700A28DD1 /* CoreLocation.framework */,
+				5196356D1D24CFBF00A28DD1 /* OpenGLES.framework */,
+				5196356B1D24CFB800A28DD1 /* Security.framework */,
+				519635691D24CFB000A28DD1 /* CoreTelephony.framework */,
+				519635671D24CFA800A28DD1 /* libsqlite3.0.tbd */,
+				519635651D24CFA000A28DD1 /* CoreGraphics.framework */,
+				519635631D24CF9700A28DD1 /* QuartzCore.framework */,
+				519635611D24CF8F00A28DD1 /* MessageUI.framework */,
 				51950D221D24B0F400092828 /* main.m */,
 			);
 			name = "Supporting Files";

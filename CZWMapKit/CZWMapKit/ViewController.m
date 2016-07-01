@@ -9,7 +9,7 @@
 #import "ViewController.h"
 
 @interface ViewController ()
-@property (strong, nonatomic) BMKMapView *mapView;
+@property (strong, nonatomic) CZWMapView *mapView;
 @end
 
 @implementation ViewController
@@ -18,17 +18,34 @@
     [super viewDidLoad];
     
     [kCZWMapKit czw_userAuthorization:kCLAuthorizationStatusAuthorizedWhenInUse];
-    [kCZWMapKit czw_startLocating:self showInView:self.view locatingMode:CZWLocatingOnce];
+    
     
 }
 
+- (void)viewWillAppear:(BOOL)animated{
+    [super viewWillAppear:animated];
+    [kCZWMapKit czw_startLocating:self showInView:self.view locatingMode:CZWLocatingOnce];
+}
+
+- (void)viewWillDisappear:(BOOL)animated{
+    [super viewWillDisappear:animated];
+}
+
 - (CZWMapView *)showMapViewWithMapKit:(CZWMapKit *)mapKit{
-    CZWMapView *defaultMapView = [[CZWMapView alloc]initWithFrame:self.view.bounds CustomType:CZWMapViewCustomTypeOne delegate:self];
-    return defaultMapView;
+    self.mapView = [[CZWMapView alloc]initWithFrame:self.view.bounds CustomType:CZWMapViewCustomTypeOne delegate:self];
+    return self.mapView;
 }
 
 - (void)mapKit:(CZWMapKit *)mapKit didLocationPostion:(CLLocationCoordinate2D)coor{
+    NSLog(@"%@",kCZWMapKit);
     [mapKit czw_reverseGeoCode:coor];
+    [mapKit czw_searchPoi:@"10路" pageCapacity:@10 succeedBlock:^(BMKPoiResult *poiResult) {
+        NSLog(@"回调成功:poiResult = %@",poiResult);
+        
+    } failureBlock:^(BMKSearchErrorCode errorCode) {
+        
+    }];
+    [self.mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
 }
 
 - (void)mapKit:(CZWMapKit *)mapKit didLocationCity:(BMKAddressComponent *)addressDetail{
@@ -39,7 +56,7 @@
 }
 
 - (void)mapViewDidFinishLoading:(BMKMapView *)mapView{
-    //[mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
+    [mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
 }
 
 @end
