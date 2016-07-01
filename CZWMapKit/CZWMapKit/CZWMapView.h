@@ -16,4 +16,6 @@ typedef NS_ENUM(NSUInteger, CZWMapViewCustomType) {
 @interface CZWMapView : BMKMapView;
 - (instancetype)initWithFrame:(CGRect)frame CustomType:(CZWMapViewCustomType)type delegate:(id<BMKMapViewDelegate>)delegate;
 - (instancetype)initWithCustomType:(CZWMapViewCustomType)type delegate:(id<BMKMapViewDelegate>)delegate;
+- (void)czw_addAnnotation:(NSMutableArray *)annotations;
+
 @end

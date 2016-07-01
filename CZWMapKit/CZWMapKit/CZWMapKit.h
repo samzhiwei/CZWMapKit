@@ -47,11 +47,11 @@ typedef NS_ENUM(NSUInteger, CZWLocatingMode) {
 - (void)mapKit:(CZWMapKit *)mapKit didLocationAddress:(NSString *)address;
 - (void)didFinishGeoLocationPostionWithMapKit:(CZWMapKit *)mapKit;
 
-
-
 @end
 @interface CZWMapKit : NSObject
 @property (weak, nonatomic) id <CZWMapKitLocationDelegate> locationDelegate;
+@property (strong, nonatomic, readonly) CZWMapView *mapView;//显示地图
+
 @property (assign, nonatomic, readonly) CLAuthorizationStatus authorizationStatus;
 
 @property (strong, nonatomic, readonly) CLLocation *cacheUserLocation;
@@ -78,9 +78,13 @@ typedef NS_ENUM(NSUInteger, CZWLocatingMode) {
 - (void)czw_reverseGeoCode:(CLLocationCoordinate2D)coor;
 
 /**
- *  poi查询
+ *  poi查询线路
  */
-- (void)czw_searchPoi:(NSString *)keyword pageCapacity:(NSNumber *)pageCapacity succeedBlock:(void (^)(BMKPoiResult *))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode))failureBlock;
+- (void)czw_searchPoi_BusLine:(NSString *)keyword succeedBlock:(void (^)(NSMutableArray <BMKPoiInfo *>*poiInfos))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock;
+/**
+ *  poi查询线路详情
+ */
+- (void)czw_searchPoi_BusLineDetailWithUID:(NSString *)uid succeedBlock:(void (^)(BMKBusLineResult*))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock;
 
 #pragma mark - global setting
 - (void)czw_setUpMapManager;

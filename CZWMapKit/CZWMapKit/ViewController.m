@@ -39,8 +39,7 @@
 - (void)mapKit:(CZWMapKit *)mapKit didLocationPostion:(CLLocationCoordinate2D)coor{
     NSLog(@"%@",kCZWMapKit);
     [mapKit czw_reverseGeoCode:coor];
-    [mapKit czw_searchPoi:@"10路" pageCapacity:@10 succeedBlock:^(BMKPoiResult *poiResult) {
-        NSLog(@"回调成功:poiResult = %@",poiResult);
+    [mapKit czw_searchPoi_BusLine:@"10路" succeedBlock:^(NSMutableArray<BMKPoiInfo *> *poiInfos) {
         
     } failureBlock:^(BMKSearchErrorCode errorCode) {
         

@@ -61,4 +61,8 @@
     param.accuracyCircleFillColor = [UIColor redColor];
     return param;
 }
+
+- (void)czw_addAnnotations:(NSMutableArray *)annotations{
+   //[ self addAnnotation:<#(id<BMKAnnotation>)#>];
+}
 @end
