@@ -302,19 +302,28 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 - (void)onGetPoiResult:(BMKPoiSearch*)searcher result:(BMKPoiResult*)poiResult errorCode:(BMKSearchErrorCode)errorCode{
     
     if (errorCode == BMK_SEARCH_NO_ERROR) {
-        for (BMKPoiInfo *aPoi in poiResult.poiInfoList) {
-            
+        NSMutableArray *busPoiArray = nil;
+        NSMutableArray *keywordPoiArray = nil;
+        for (BMKPoiInfo *aPoi in poiResult.poiInfoList) {//遍历筛选
             if (aPoi.epoitype == 2 || aPoi.epoitype == 4) {///POI类型，0:普通点 1:公交站 2:公交线路 3:地铁站 4:地铁线路
-                NSMutableArray *busPoiArray = [[NSMutableArray alloc]init];
-                [busPoiArray addObject:aPoi];
-                if (self.busLineBlock) {
-                    self.busLineBlock(busPoiArray);
+                if (!busPoiArray) {
+                    busPoiArray = [[NSMutableArray alloc]init];
+                    NSLog(@"bus = %p",busPoiArray);
                 }
+                [busPoiArray addObject:aPoi];
             } else {
-                NSMutableArray *keywordPoiArray = [[NSMutableArray alloc]init];
+                if (!keywordPoiArray) {
+                    keywordPoiArray = [[NSMutableArray alloc]init];
+                }
                 [keywordPoiArray addObject:aPoi];
             }
         }
+        //发送
+        if (self.busLineBlock && busPoiArray) {
+            self.busLineBlock(busPoiArray);
+        }
+#warning todo:非公交线路poi处理
+        
     } else {
         if (self.failureBlock) {
             self.failureBlock(errorCode);

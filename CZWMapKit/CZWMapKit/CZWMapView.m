@@ -53,7 +53,7 @@
 }
 
 /**
- *  自定义精度圈(暂时没效果)
+ *  自定义精度圈
  */
 - (BMKLocationViewDisplayParam *)customLocationAccuracyCircle {
     BMKLocationViewDisplayParam *param = [[BMKLocationViewDisplayParam alloc] init];

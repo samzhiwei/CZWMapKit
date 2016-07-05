@@ -39,11 +39,6 @@
 - (void)mapKit:(CZWMapKit *)mapKit didLocationPostion:(CLLocationCoordinate2D)coor{
     NSLog(@"%@",kCZWMapKit);
     [mapKit czw_reverseGeoCode:coor];
-    [mapKit czw_searchPoi_BusLine:@"10路" succeedBlock:^(NSMutableArray<BMKPoiInfo *> *poiInfos) {
-        
-    } failureBlock:^(BMKSearchErrorCode errorCode) {
-        
-    }];
     [self.mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
 }
 
@@ -52,6 +47,13 @@
 }
 - (void)mapKit:(CZWMapKit *)mapKit didLocationAddress:(NSString *)address{
     NSLog(@"address = %@,当前线程:%@,当前方法:%s",address,[NSThread currentThread], __FUNCTION__);
+    [mapKit czw_searchPoi_BusLine:@"10路" succeedBlock:^(NSMutableArray<BMKPoiInfo *> *poiInfos) {
+        for (BMKPoiInfo *poi in poiInfos) {
+            NSLog(@"poi = %@",poi);
+        }
+    } failureBlock:^(BMKSearchErrorCode errorCode) {
+        
+    }];
 }
 
 - (void)mapViewDidFinishLoading:(BMKMapView *)mapView{

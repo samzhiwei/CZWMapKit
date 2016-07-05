@@ -26,7 +26,7 @@
 
 
 #define kCZWMapKit  [CZWMapKit shareMapKit]
-#define kAppMapKey @"RiBS6xnsj6Qyr9Q7rwTpyLj7"  //启动秘钥
+#define kAppMapKey @"Huguh0KNzNP1RCkHKfG5wKywywxaSTDF"  //启动秘钥
 
 typedef NS_ENUM(NSUInteger, CZWLocatingMode) {
     CZWLocatingOnce = 0,
