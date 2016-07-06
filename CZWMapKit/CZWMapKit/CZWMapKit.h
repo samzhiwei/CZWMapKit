@@ -58,6 +58,9 @@ typedef NS_ENUM(NSUInteger, CZWLocatingMode) {
 @property (strong, nonatomic, readonly) NSString *cacheCity;
 @property (strong, nonatomic, readonly) NSString *cacheAddress;
 
+@property (strong, nonatomic, readonly) NSNumber *totalSendFlaxLength;
+@property (strong, nonatomic, readonly) NSNumber *totalRecvFlaxLength;
+
 + (instancetype)shareMapKit;
 /**
  *  授权
@@ -84,7 +87,15 @@ typedef NS_ENUM(NSUInteger, CZWLocatingMode) {
 /**
  *  poi查询线路详情
  */
-- (void)czw_searchPoi_BusLineDetailWithUID:(NSString *)uid succeedBlock:(void (^)(BMKBusLineResult*))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock;
+- (void)czw_searchPoi_BusLineDetailWithUID:(NSString *)uid succeedBlock:(void (^)(BMKBusLineResult*aBusLineResult))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock;
+/**
+ *  走路路线方案查询(点到点)
+ */
+- (void)czw_searchWalkingRoutePlanStarting:(CLLocationCoordinate2D)startLocationCoord endLocationCoord:(CLLocationCoordinate2D)endLocationCoord succeedBlock:(void (^)(BMKWalkingRouteLine *aRouteLine))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock;
+/**
+ *  清除私有block和百度服务类引用(除BMKMapManager外);
+ */
+- (void)clearPrivateBlockAndAllBaiduServiceClass;
 
 #pragma mark - global setting
 - (void)czw_setUpMapManager;

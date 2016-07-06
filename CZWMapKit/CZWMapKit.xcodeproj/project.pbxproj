@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		514BBD581D2D0BD900D0DFFE /* UIImage+Rotate.m in Sources */ = {isa = PBXBuildFile; fileRef = 514BBD571D2D0BD900D0DFFE /* UIImage+Rotate.m */; };
 		51950D231D24B0F400092828 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 51950D221D24B0F400092828 /* main.m */; };
 		51950D261D24B0F400092828 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 51950D251D24B0F400092828 /* AppDelegate.m */; };
 		51950D291D24B0F400092828 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 51950D281D24B0F400092828 /* ViewController.m */; };
@@ -35,10 +36,12 @@
 		519635781D24D08700A28DD1 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 519635771D24D08700A28DD1 /* libsqlite3.tbd */; };
 		5196357D1D24E96500A28DD1 /* libstdc++.6.0.9.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5196357C1D24E96500A28DD1 /* libstdc++.6.0.9.tbd */; };
 		5196357F1D24EA7000A28DD1 /* mapapi.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 5196357E1D24EA7000A28DD1 /* mapapi.bundle */; };
-		519635821D24F11000A28DD1 /* CZWMapView.m in Sources */ = {isa = PBXBuildFile; fileRef = 519635811D24F11000A28DD1 /* CZWMapView.m */; };
+		519635821D24F11000A28DD1 /* CZWMapView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 519635811D24F11000A28DD1 /* CZWMapView.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		514BBD561D2D0BD900D0DFFE /* UIImage+Rotate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UIImage+Rotate.h"; sourceTree = "<group>"; };
+		514BBD571D2D0BD900D0DFFE /* UIImage+Rotate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UIImage+Rotate.m"; sourceTree = "<group>"; };
 		51950D1E1D24B0F400092828 /* CZWMapKit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CZWMapKit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		51950D221D24B0F400092828 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		51950D241D24B0F400092828 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -73,7 +76,7 @@
 		5196357C1D24E96500A28DD1 /* libstdc++.6.0.9.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libstdc++.6.0.9.tbd"; path = "usr/lib/libstdc++.6.0.9.tbd"; sourceTree = SDKROOT; };
 		5196357E1D24EA7000A28DD1 /* mapapi.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; name = mapapi.bundle; path = BaiduMapAPI/BaiduMapAPI_Map.framework/Resources/mapapi.bundle; sourceTree = "<group>"; };
 		519635801D24F11000A28DD1 /* CZWMapView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CZWMapView.h; sourceTree = "<group>"; };
-		519635811D24F11000A28DD1 /* CZWMapView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CZWMapView.m; sourceTree = "<group>"; };
+		519635811D24F11000A28DD1 /* CZWMapView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CZWMapView.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,7 +136,9 @@
 				51950D471D24B14A00092828 /* CZWMapKit.h */,
 				51950D481D24B14A00092828 /* CZWMapKit.m */,
 				519635801D24F11000A28DD1 /* CZWMapView.h */,
-				519635811D24F11000A28DD1 /* CZWMapView.m */,
+				519635811D24F11000A28DD1 /* CZWMapView.mm */,
+				514BBD561D2D0BD900D0DFFE /* UIImage+Rotate.h */,
+				514BBD571D2D0BD900D0DFFE /* UIImage+Rotate.m */,
 				51950D2A1D24B0F400092828 /* Main.storyboard */,
 				51950D2D1D24B0F400092828 /* Assets.xcassets */,
 				51950D2F1D24B0F400092828 /* LaunchScreen.storyboard */,
@@ -253,8 +258,9 @@
 			files = (
 				51950D491D24B14A00092828 /* CZWMapKit.m in Sources */,
 				51950D291D24B0F400092828 /* ViewController.m in Sources */,
+				514BBD581D2D0BD900D0DFFE /* UIImage+Rotate.m in Sources */,
 				51950D261D24B0F400092828 /* AppDelegate.m in Sources */,
-				519635821D24F11000A28DD1 /* CZWMapView.m in Sources */,
+				519635821D24F11000A28DD1 /* CZWMapView.mm in Sources */,
 				51950D231D24B0F400092828 /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
