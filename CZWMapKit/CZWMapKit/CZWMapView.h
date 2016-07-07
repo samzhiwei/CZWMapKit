@@ -34,7 +34,7 @@ typedef NS_ENUM(NSUInteger, CZWMapAnnotationType) {
 
 @end
 
-@interface CZWMapView : BMKMapView <BMKMapViewDelegate>
+@interface CZWMapView : BMKMapView 
 /**
  *  if delegate is nil, self(CZWMapView) will become the delegate for itself ;
  */

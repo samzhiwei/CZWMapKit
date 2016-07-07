@@ -5,9 +5,8 @@
 //  Created by tianqu on 16/6/30.
 //  Copyright © 2016年 Tianqu. All rights reserved.
 //
-#define DEFAULT_TEXT @"暂无显示内容"
+#define DEFAULT_TEXT nil//@"暂无显示内容"
 #import "CZWMapView.h"
-#import "UIImage+Rotate.h"
 
 @implementation CZWMapAnnotation
 @synthesize degree = _degree;
@@ -58,11 +57,7 @@
             self.buildingsEnabled = YES;
             self.mapScaleBarPosition = CGPointMake(10, 10);
             [self updateLocationViewWithParam:[self customLocationAccuracyCircle]];
-            if (delegate == nil) {
-                self.delegate = self;
-            } else {
-                self.delegate = delegate;
-            }
+            self.delegate = delegate;
             
             break;
         }
@@ -207,62 +202,6 @@
     delete []temppoints;
 }
 
-- (void)mapViewDidFinishLoading:(BMKMapView *)mapView{
-    NSLog(@"完成load");
-}
 
-#pragma mark - 集中处理显示的Annotation
-- (BMKAnnotationView *)mapView:(BMKMapView *)mapView viewForAnnotation:(id <BMKAnnotation>)annotation{
-    BMKAnnotationView *av = nil;
-    if ([annotation isKindOfClass:[CZWMapAnnotation class]]) {
-        CZWMapAnnotation *czwAnnotation = (CZWMapAnnotation *)annotation;
-        av = [[BMKAnnotationView alloc]initWithAnnotation:czwAnnotation reuseIdentifier:NSStringFromClass([CZWMapAnnotation class])];
-        switch (czwAnnotation.type) {
-            case CZWMapAnnotationTypeStarting :{
-                av.image = [UIImage imageNamed:@"icon_line_start"];
-                av.centerOffset = CGPointMake(0, -10);
-                break;
-            }
-            case CZWMapAnnotationTypeTerminal :{
-                av.image = [UIImage imageNamed:@"icon_line_end"];
-                av.centerOffset = CGPointMake(0, -10);
-                break;
-            }
-            case CZWMapAnnotationTypeBus :{
-                av.image = [UIImage  imageNamed:@"ic_position"];
-                av.centerOffset = CGPointMake(0, -10);
-                break;
-            }
-            case CZWMapAnnotationTypeMetro :{
-                break;
-            }
-            case CZWMapAnnotationTypeDrivingCar :{
-                break;
-            }
-            case CZWMapAnnotationTypeWalking :{
-                UIImage *image = [UIImage imageNamed:@"icon_direction"];
-                av.image = [image imageRotatedByDegrees:czwAnnotation.degree];
-                av.centerOffset = CGPointMake(0, 0);
-                break;
-            }
-            case CZWMapAnnotationTypeUnknow:{
-                break;
-            }
-        }
-    }
-    return av;
-}
-
-#pragma mark - 集中处理显示的覆盖物（线路）
-- (BMKOverlayView *)mapView:(BMKMapView *)mapView viewForOverlay:(id <BMKOverlay>)overlay{
-    if ([overlay isKindOfClass:[BMKPolyline class]]) {
-        BMKPolylineView* polylineView = [[BMKPolylineView alloc] initWithOverlay:overlay];
-        polylineView.fillColor = [[UIColor colorWithRed:24/255.0 green:150/255.0 blue:214/255.0 alpha:1] colorWithAlphaComponent:1];
-        polylineView.strokeColor = [[UIColor colorWithRed:24/255.0 green:150/255.0 blue:214/255.0 alpha:1] colorWithAlphaComponent:1];
-        polylineView.lineWidth = 3.50;
-        return polylineView;
-    }
-    return nil;
-}
 
 @end

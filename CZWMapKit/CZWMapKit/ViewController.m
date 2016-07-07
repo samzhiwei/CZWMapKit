@@ -8,8 +8,13 @@
 
 #import "ViewController.h"
 
-@interface ViewController ()
-@property (strong, nonatomic) CZWMapView *mapView;
+@interface ViewController () <BMKOfflineMapDelegate>
+@property (weak, nonatomic) IBOutlet UIButton *button;
+@property (weak, nonatomic) IBOutlet UIButton *deleteBtn;
+@property (weak, nonatomic) IBOutlet UIButton *addBtn;
+@property (strong, nonatomic) NSArray *hotCity;
+@property (strong, nonatomic) NSArray *offlineCity;
+@property (strong, nonatomic) BMKOfflineMap *map;
 @end
 
 @implementation ViewController
@@ -18,48 +23,23 @@
     [super viewDidLoad];
     
     [kCZWMapKit czw_userAuthorization:kCLAuthorizationStatusAuthorizedWhenInUse];
+    
     NSLog(@"self = %p",self);
     
 }
-
-- (void)viewWillAppear:(BOOL)animated{
-    [super viewWillAppear:animated];
-    [kCZWMapKit czw_startLocating:self showInView:self.view locatingMode:CZWLocatingOnce];
-}
-
-- (void)viewWillDisappear:(BOOL)animated{
-    [super viewWillDisappear:animated];
-}
-
-- (CZWMapView *)showMapViewWithMapKit:(CZWMapKit *)mapKit{
-    self.mapView = [[CZWMapView alloc]initWithFrame:self.view.bounds CustomType:CZWMapViewCustomTypeOne delegate:nil];
-    NSLog(@"self.mapView = %@",self.mapView);
-    return self.mapView;
-}
-
-- (void)mapKit:(CZWMapKit *)mapKit didLocationPostion:(CLLocationCoordinate2D)coor{
-    NSLog(@"%@",kCZWMapKit);
-    __weak typeof(self) weakSelf = self;
-    [mapKit czw_searchWalkingRoutePlanStarting:coor endLocationCoord:CLLocationCoordinate2DMake(23.140540, 113.346151) succeedBlock:^(BMKWalkingRouteLine *aRouteLine) {
-        [weakSelf.mapView czw_addWalkingRouteLine:aRouteLine];
-        [weakSelf.mapView czw_moveMapViewToCenter:coor animated:YES];
-    } failureBlock:^(BMKSearchErrorCode errorCode) {
-        
-    }];
-    [mapKit czw_reverseGeoCode:coor];
-    [self.mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
-}
-
-- (void)mapKit:(CZWMapKit *)mapKit didLocationCity:(BMKAddressComponent *)addressDetail{
-    
-}
-- (void)mapKit:(CZWMapKit *)mapKit didLocationAddress:(NSString *)address{
-    NSLog(@"address = %@,当前线程:%@,当前方法:%s",address,[NSThread currentThread], __FUNCTION__);
-//    __weak typeof(self) weakSelf = self;
-//    [mapKit czw_searchPoi_BusLine:@"10路" succeedBlock:^(NSMutableArray<BMKPoiInfo *> *poiInfos) {
+- (IBAction)clickBtn:(UIButton *)sender {
+//    [kCZWMapKit czw_searchWalkingRoutePlanStarting:kCZWMapKit.cacheUserLocation.coordinate endLocationCoord:CLLocationCoordinate2DMake(23.140540, 113.346151) succeedBlock:^(BMKWalkingRouteLine *aRouteLine ,CZWMapView *mapView ,CZWMapKit *mapKit) {
 //        
+//        [mapView czw_addWalkingRouteLine:aRouteLine];
+//        [mapView czw_moveMapViewToCenter:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
+//        
+//    } failureBlock:^(BMKSearchErrorCode errorCode) {
+//
+//    }];
+//    [kCZWMapKit czw_loadingMapView:self];
+//    [kCZWMapKit czw_searchPoi_BusLine:@"77路" succeedBlock:^(NSMutableArray<BMKPoiInfo *> *poiInfos ,CZWMapKit *mapKit) {
 //        for (BMKPoiInfo *aPoi in poiInfos) {
-//            [mapKit czw_searchPoi_BusLineDetailWithUID:aPoi.uid succeedBlock:^(BMKBusLineResult *busLineResult) {
+//            [mapKit czw_searchPoi_BusLineDetailWithUID:aPoi.uid succeedBlock:^(BMKBusLineResult *busLineResult ,CZWMapView *mapView ,CZWMapKit *mapKit) {
 //                if (busLineResult) {
 //                    NSMutableArray <id<BMKAnnotation>> *array = [[NSMutableArray alloc]init];
 //                    for (int i = 0; i < busLineResult.busStations.count; i ++) {
@@ -76,11 +56,11 @@
 //                        [array addObject:an];
 //                    }
 //                    BMKBusStation *firstStation = [busLineResult.busStations firstObject];
-//                    [weakSelf.mapView czw_addStationAnnotation:array];
-//                    [weakSelf.mapView czw_addBusLine:busLineResult.busSteps];
-//                    [weakSelf.mapView czw_moveMapViewToCenter:firstStation.location animated:YES];
+//                    [mapView czw_addStationAnnotation:array];
+//                    [mapView czw_addBusLine:busLineResult.busSteps];
+//                    [mapView czw_moveMapViewToCenter:firstStation.location animated:YES];
 //                }
-//
+//                
 //            } failureBlock:^(BMKSearchErrorCode errorCode) {
 //                
 //            }];
@@ -89,12 +69,65 @@
 //    } failureBlock:^(BMKSearchErrorCode errorCode) {
 //        
 //    }];
+    
+//    _hotCity = [kCZWMapKit czw_startOffLineMapService:^NSArray *(BMKOfflineMap *offlineMap) {
+//        return [offlineMap getHotCityList];
+//    }];
+//    
+//    [kCZWMapKit czw_offlineMapHandler:^(BMKOfflineMap *offlineMap) {
+//        
+//        [offlineMap start:257];
+//    }];
+    self.map = [[BMKOfflineMap alloc]init];
+    self.map.delegate = self;
+    NSLog(@"map = %p",self.map);
+    _hotCity = [self.map getHotCityList];
+    //获取支持离线下载城市列表
+    _offlineCity = [self.map getOfflineCityList];
+    [self.map start:257];
+    
+    [self.view bringSubviewToFront:self.deleteBtn];
+    [self.view bringSubviewToFront:self.button];
+    [self.view bringSubviewToFront:self.addBtn];
+}
+- (IBAction)clickDelete:(UIButton *)sender {
+    [kCZWMapKit removeAllService];
+}
+
+- (void)viewWillAppear:(BOOL)animated{
+    [super viewWillAppear:animated];
+    [kCZWMapKit czw_startLocatingDelegate:self locatingMode:CZWLocatingOnce];
+}
+
+- (void)viewWillDisappear:(BOOL)animated{
+    [super viewWillDisappear:animated];
+}
+
+
+- (CZWMapView *)showMapViewWithMapKit:(CZWMapKit *)mapKit{
+    return [[CZWMapView alloc]initWithFrame:self.view.bounds CustomType:CZWMapViewCustomTypeOne delegate:mapKit];
+}
+
+- (void)addMapInView:(CZWMapView *)mapView{
+    [self.view addSubview:mapView];
 }
 
 
 
-- (void)mapViewDidFinishLoading:(BMKMapView *)mapView{
-    [mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
+- (void)mapKit:(CZWMapKit *)mapKit didLocationPostion:(CLLocationCoordinate2D)coor{
+    NSLog(@"%@",kCZWMapKit);
+    [mapKit czw_reverseGeoCode:coor];
+    [mapKit.mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
 }
 
+- (void)mapKit:(CZWMapKit *)mapKit didLocationCity:(BMKAddressComponent *)addressDetail{
+    
+}
+- (void)mapKit:(CZWMapKit *)mapKit didLocationAddress:(NSString *)address{
+    NSLog(@"address = %@,当前线程:%@,当前方法:%s",address,[NSThread currentThread], __FUNCTION__);
+
+}
+- (void)onGetOfflineMapState:(int)type withState:(int)state{
+    
+}
 @end

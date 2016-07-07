@@ -12,7 +12,7 @@
 
 #import "CZWMapKit.h"
 #import <objc/runtime.h>
-
+#import "UIImage+Rotate.h"
 
 @interface CZWMapKit () <
 BMKGeneralDelegate,
@@ -23,6 +23,7 @@ BMKMapViewDelegate,
 BMKPoiSearchDelegate,
 BMKBusLineSearchDelegate,
 BMKRouteSearchDelegate,
+BMKOfflineMapDelegate,
 UIAlertViewDelegate
 >
 @property (strong, nonatomic) BMKMapManager *mapManager;//服务启动类
@@ -35,6 +36,7 @@ UIAlertViewDelegate
 @property (strong, nonatomic) BMKRouteSearch *baiduRouteSearch;//百度公交路径规划方案 搜索
 
 
+
 /**
  *  临时存poi数据
  */
@@ -43,11 +45,11 @@ UIAlertViewDelegate
 
 #pragma mark - 回调block
 //成功
-typedef void(^SucceedBusLineBlock)(NSMutableArray <BMKPoiInfo *>*);
+typedef void(^SucceedBusLineBlock)(NSMutableArray <BMKPoiInfo *>* ,CZWMapKit *);
 @property (copy, nonatomic) SucceedBusLineBlock busLineBlock;
-typedef void(^SucceedBusLineDetailBlock)(BMKBusLineResult *);
+typedef void(^SucceedBusLineDetailBlock)(BMKBusLineResult * ,CZWMapView *,CZWMapKit *);
 @property (copy, nonatomic) SucceedBusLineDetailBlock busLineDetailBlock;
-typedef void(^SucceedWalkingRouteBlock)(BMKWalkingRouteLine *);
+typedef void(^SucceedWalkingRouteBlock)(BMKWalkingRouteLine * ,CZWMapView * ,CZWMapKit *);
 @property (copy, nonatomic) SucceedWalkingRouteBlock walkingRouteBlock;
 //失败
 typedef void(^FailureBlock)(BMKSearchErrorCode);
@@ -63,42 +65,59 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 
 
 @implementation CZWMapKit
-
-#pragma mark - Api
+@synthesize baiduOfflineMap = _baiduOfflineMap;
+#pragma mark - ====BaseSetting====
+#pragma mark - Api - BaseSetting
 + (instancetype)shareMapKit{
     static dispatch_once_t once;
     static CZWMapKit *sharedInstance;
     dispatch_once(&once, ^ {
         sharedInstance = [[CZWMapKit alloc] init];
+        NSLog(@"shared = %p",sharedInstance);
     });
     return sharedInstance;
 }
 /**
  *  清除私有block缓存;
  */
-- (void)clearPrivateBlockAndAllBaiduServiceClass{
-    self.busLineBlock = nil;
-    self.busLineDetailBlock = nil;
-    self.walkingRouteBlock = nil;
-    self.failureBlock = nil;
+- (void)removeAllService{
+    [self.mapView removeFromSuperview];
+    [self setValue:nil forKey:@"mapView"];
     
-    self.locationManager = nil;
-    self.locationManager.delegate = nil;
+    _busLineBlock = nil;
+    _busLineDetailBlock = nil;
+    _walkingRouteBlock = nil;
+    _failureBlock = nil;
     
-    self.baiduLocService = nil;
-    self.baiduLocService.delegate = nil;
+    _locationManager.delegate = nil;
+    _locationManager = nil;
     
-    self.baiduGeoCodeSearch = nil;
-    self.baiduGeoCodeSearch.delegate = nil;
+    _baiduLocService.delegate = nil;
+    _baiduLocService = nil;
     
-    self.baiduPoiSearch = nil;
-    self.baiduPoiSearch.delegate = nil;
+    _baiduGeoCodeSearch.delegate = nil;
+    _baiduGeoCodeSearch = nil;
     
-    self.baiduBusLineSearch = nil;
-    self.baiduBusLineSearch.delegate = nil;
+    _baiduPoiSearch.delegate = nil;
+    _baiduPoiSearch = nil;
     
-    self.baiduRouteSearch = nil;
-    self.baiduRouteSearch.delegate = nil;
+    _baiduBusLineSearch.delegate = nil;
+    _baiduBusLineSearch = nil;
+    
+    _baiduRouteSearch.delegate = nil;
+    _baiduRouteSearch = nil;
+    
+}
+/**
+ *  global setting
+ */
+- (void)czw_setUpMapManager{
+    
+    BOOL ret = [self.mapManager start:kAppMapKey generalDelegate:self];
+    
+    if (!ret) {
+        NSLog(@"BMKMapManager start failed!");
+    }
 }
 /**
  *  授权
@@ -122,116 +141,13 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
     }
 }
 /**
- *  开启定位
+ *  加载地图
  */
-- (void)czw_startLocating:(id<CZWMapKitLocationDelegate>)delegate showInView:(UIView *)view locatingMode:(CZWLocatingMode)mode{
-    [self baseLocatingSetup];
-    self.locationDelegate = delegate;
-    self.locatingMode = mode;
-    
-    //[self czw_userAuthorization:kCLAuthorizationStatusAuthorizedWhenInUse];
-    [self requestLocationDelegate:delegate showInView:view];
-    
-    [self.baiduLocService startUserLocationService];
-}
-/**
- *  停止定位
- */
-- (void)czw_stopLocating{
-    [self.baiduLocService stopUserLocationService];
-}
-/**
- *  开启反地理编码
- */
-- (void)czw_reverseGeoCode:(CLLocationCoordinate2D)coor{
-    NSLog(@"开始反地理编码:位置(%f, %f)",coor.latitude, coor.longitude);
-    BMKReverseGeoCodeOption* reverseOp = [[BMKReverseGeoCodeOption alloc]init];
-    reverseOp.reverseGeoPoint = coor;
-    [self.baiduGeoCodeSearch reverseGeoCode:reverseOp];
-}
-/**
- *  poi查询线路
- */
-- (void)czw_searchPoi_BusLine:(NSString *)keyword succeedBlock:(void (^)(NSMutableArray <BMKPoiInfo *>*poiInfos))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock{
-    [self baseLocatingSetup];
-    
-    self.busLineBlock = succeedBlock;
-    self.failureBlock = failureBlock;
-    
-    BMKCitySearchOption *citySearchOption = [[BMKCitySearchOption alloc]init];
-    citySearchOption.pageIndex = POI_SEARCH_PAGE_INDEX;
-    citySearchOption.pageCapacity = POI_SEARCH_PAGE_CAPACITY;
-    citySearchOption.city= POI_SEARCH_CITY;
-    citySearchOption.keyword = keyword;
-    BOOL flag = [self.baiduPoiSearch poiSearchInCity:citySearchOption];
-    if(flag)
-    {
-        NSLog(@"城市内poi检索发送成功");
-    }
-    else
-    {
-        NSLog(@"城市内poi检索发送失败");
-    }
-}
-/**
- *  poi查询线路详情
- */
-- (void)czw_searchPoi_BusLineDetailWithUID:(NSString *)uid succeedBlock:(void (^)(BMKBusLineResult*aBusLineResult))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock{
-    [self baseLocatingSetup];
-    
-    self.busLineDetailBlock = succeedBlock;
-    self.failureBlock = failureBlock;
-    
-    BMKBusLineSearchOption *buslineSearchOption = [[BMKBusLineSearchOption alloc]init];
-    buslineSearchOption.city= POI_SEARCH_CITY;
-    buslineSearchOption.busLineUid= uid;
-    BOOL flag = [self.baiduBusLineSearch busLineSearch:buslineSearchOption];
-    if(flag)
-    {
-        NSLog(@"busline检索发送成功");
-    }
-    else
-    {
-        NSLog(@"busline检索发送失败");
-    }
-    
+- (void)czw_loadingMapView:(id<CZWMapViewDelegate>)delegate{
+    [self requestLocationDelegate:delegate];
 }
 
-- (void)czw_searchWalkingRoutePlanStarting:(CLLocationCoordinate2D)startLocationCoord endLocationCoord:(CLLocationCoordinate2D)endLocationCoord succeedBlock:(void (^)(BMKWalkingRouteLine *aRouteLine))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock{
-    
-    self.walkingRouteBlock = succeedBlock;
-    self.failureBlock = failureBlock;
-    
-    BMKPlanNode *start = [[BMKPlanNode alloc] init];
-    start.pt = startLocationCoord;
-    start.cityName = POI_SEARCH_CITY;
-    BMKPlanNode *end = [[BMKPlanNode alloc] init];
-    end.pt = endLocationCoord;
-    end.cityName = POI_SEARCH_CITY;
-    BMKWalkingRoutePlanOption *walking = [[BMKWalkingRoutePlanOption alloc] init];
-    walking.from = start;
-    walking.to = end;
-    BOOL flag = [self.baiduRouteSearch walkingSearch:walking];
-    if (flag) {
-        NSLog(@"transfer检索发送成功");
-    }
-    else
-    {
-        NSLog(@"transfer检索发送失败");
-    }
-}
-
-#pragma mark - Api Global Setting
-- (void)czw_setUpMapManager{
-    
-    BOOL ret = [self.mapManager start:kAppMapKey generalDelegate:self];
-    
-    if (!ret) {
-        NSLog(@"BMKMapManager start failed!");
-    } 
-}
-
-#pragma mark - Private
+#pragma mark - Private - BaseSetting
 /**
  *  查授权
  */
@@ -256,21 +172,53 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
     }
 }
 
+
+#pragma mark - ====LocationService====
+#pragma mark - Api - Location Service
+/**
+ *  开启定位
+ */
+- (void)czw_startLocatingDelegate:(id<CZWMapKitLocationDelegate>)delegate locatingMode:(CZWLocatingMode)mode{
+    [self baseLocatingSetup];
+    self.locationDelegate = delegate;
+    self.locatingMode = mode;
+    
+    //[self czw_userAuthorization:kCLAuthorizationStatusAuthorizedWhenInUse];
+    
+    [self.baiduLocService startUserLocationService];
+}
+/**
+ *  停止定位
+ */
+- (void)czw_stopLocating{
+    [self.baiduLocService stopUserLocationService];
+}
+/**
+ *  开启反地理编码
+ */
+- (void)czw_reverseGeoCode:(CLLocationCoordinate2D)coor{
+    NSLog(@"开始反地理编码:位置(%f, %f)",coor.latitude, coor.longitude);
+    BMKReverseGeoCodeOption* reverseOp = [[BMKReverseGeoCodeOption alloc]init];
+    reverseOp.reverseGeoPoint = coor;
+    [self.baiduGeoCodeSearch reverseGeoCode:reverseOp];
+}
+
 #pragma mark - Private - Location Service
 /**
  *  设置mapView
  */
-- (void)requestLocationDelegate:(id <CZWMapKitLocationDelegate>)delegate showInView:(UIView *)view{
-    if ([delegate respondsToSelector:@selector(showMapViewWithMapKit:)]) {
+- (void)requestLocationDelegate:(id <CZWMapViewDelegate>)delegate{
+    self.mapViewDelegate = delegate;
+    if (!self.mapView) {
         __weak typeof(self) weakSelf = self;
         [self setValue:[delegate showMapViewWithMapKit:weakSelf] forKey:@"mapView"];
+        NSLog(@"mapView = %p",self.mapView);
+        [self userTrackingMode:BMKUserTrackingModeNone];
         
+        [delegate addMapInView:self.mapView];
     } else {
-        //[self setValue:[self defaultMapView] forKey:@"mapView"];
+        NSLog(@"mapView已存在不重新添加");
     }
-    
-    [self userTrackingMode:BMKUserTrackingModeNone];
-    [view addSubview:self.mapView];
 }
 
 - (void)userTrackingMode:(BMKUserTrackingMode)mode{
@@ -279,14 +227,93 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
     _mapView.showsUserLocation = YES;//显示定位图层
 }
 
-#pragma mark - Private - Default
-//- (CZWMapView *)defaultMapView{
-//    CZWMapView *defaultMapView = [[CZWMapView alloc]initWithCustomType:CZWMapViewCustomTypeOne delegate:self];
-//    return defaultMapView;
-//}
+
+#pragma mark - ====SearchPOI====
+#pragma mark - Api - SearchPOI
+/**
+ *  poi查询线路
+ */
+- (void)czw_searchPoi_BusLine:(NSString *)keyword succeedBlock:(void (^)(NSMutableArray <BMKPoiInfo *>*poiInfos ,CZWMapKit *mapKit))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock{
+    
+    self.busLineBlock = succeedBlock;
+    self.failureBlock = failureBlock;
+    
+    BMKCitySearchOption *citySearchOption = [[BMKCitySearchOption alloc]init];
+    citySearchOption.pageIndex = POI_SEARCH_PAGE_INDEX;
+    citySearchOption.pageCapacity = POI_SEARCH_PAGE_CAPACITY;
+    citySearchOption.city= POI_SEARCH_CITY;
+    citySearchOption.keyword = keyword;
+    BOOL flag = [self.baiduPoiSearch poiSearchInCity:citySearchOption];
+    if(flag)
+    {
+        NSLog(@"城市内poi检索发送成功");
+    }
+    else
+    {
+        NSLog(@"城市内poi检索发送失败");
+    }
+}
+/**
+ *  poi查询线路详情
+ */
+- (void)czw_searchPoi_BusLineDetailWithUID:(NSString *)uid succeedBlock:(void (^)(BMKBusLineResult*aBusLineResult ,CZWMapView *mapView ,CZWMapKit *mapKit))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock{
+    
+    self.busLineDetailBlock = succeedBlock;
+    self.failureBlock = failureBlock;
+    
+    BMKBusLineSearchOption *buslineSearchOption = [[BMKBusLineSearchOption alloc]init];
+    buslineSearchOption.city= POI_SEARCH_CITY;
+    buslineSearchOption.busLineUid= uid;
+    BOOL flag = [self.baiduBusLineSearch busLineSearch:buslineSearchOption];
+    if(flag)
+    {
+        NSLog(@"busline详情检索发送成功");
+    }
+    else
+    {
+        NSLog(@"busline详情检索发送失败");
+    }
+    
+}
+
+- (void)czw_searchWalkingRoutePlanStarting:(CLLocationCoordinate2D)startLocationCoord endLocationCoord:(CLLocationCoordinate2D)endLocationCoord succeedBlock:(void (^)(BMKWalkingRouteLine *aRouteLine ,CZWMapView*mapView ,CZWMapKit *mapKit))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock{
+    
+    self.walkingRouteBlock = succeedBlock;
+    self.failureBlock = failureBlock;
+    
+    BMKPlanNode *start = [[BMKPlanNode alloc] init];
+    start.pt = startLocationCoord;
+    start.cityName = POI_SEARCH_CITY;
+    BMKPlanNode *end = [[BMKPlanNode alloc] init];
+    end.pt = endLocationCoord;
+    end.cityName = POI_SEARCH_CITY;
+    BMKWalkingRoutePlanOption *walking = [[BMKWalkingRoutePlanOption alloc] init];
+    walking.from = start;
+    walking.to = end;
+    BOOL flag = [self.baiduRouteSearch walkingSearch:walking];
+    if (flag) {
+        NSLog(@"walkingRoute检索发送成功");
+    }
+    else
+    {
+        NSLog(@"walkingRoute检索发送失败");
+    }
+}
+
+#pragma mark - ====OffLineMap====
+- (NSArray *)czw_startOffLineMapService:(NSArray* (^)(BMKOfflineMap *offlineMap))succeedBlock{
+    BMKOfflineMap *offlineMap = self.baiduOfflineMap;
+    return succeedBlock(offlineMap);
+}
+
+- (void)czw_offlineMapHandler:(void (^)(BMKOfflineMap *offlineMap))handler{
+    BMKOfflineMap *offlineMap = self.baiduOfflineMap;
+    return handler(offlineMap);
+}
 
 
-
+#pragma mark - +++++++++++++++++++++++++++++++DELEGATE+++++++++++++++++++++++++++++++
+#pragma mark - ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 #pragma mark - BMKLocationServiceDelegate
 - (void)willStartLocatingUser{
@@ -377,7 +404,8 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
         }
         //发送
         if (self.busLineBlock && busPoiArray) {
-            self.busLineBlock(busPoiArray);
+            __weak typeof(self) weakSelf = self;
+            self.busLineBlock(busPoiArray,weakSelf);
         }
 #warning todo:非公交线路poi处理
         
@@ -392,7 +420,8 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 - (void)onGetBusDetailResult:(BMKBusLineSearch*)searcher result:(BMKBusLineResult*)busLineResult errorCode:(BMKSearchErrorCode)error{
     if (error == BMK_SEARCH_NO_ERROR) {
         if (self.busLineDetailBlock) {
-            self.busLineDetailBlock(busLineResult);
+            __weak typeof(self) weakSelf = self;
+            self.busLineDetailBlock(busLineResult, weakSelf.mapView, weakSelf);
         }
     } else {
         if (self.failureBlock) {
@@ -406,10 +435,12 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
     if (error == BMK_SEARCH_NO_ERROR) {
         for (BMKWalkingRouteLine *aRouteLine in result.routes) {
             if (self.walkingRouteBlock) {
-                self.walkingRouteBlock(aRouteLine);
+                __weak typeof(self) weakSelf = self;
+                self.walkingRouteBlock(aRouteLine ,weakSelf.mapView ,weakSelf);
             }
         }
     } else {
+        NSLog(@"路线返回码：%d",error);
         if (self.failureBlock) {
             self.failureBlock(error);
         }
@@ -427,6 +458,78 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
         price = (distance-3)*3 + 10;
     }
 }
+
+#pragma mark -  BMKOfflineMapDelegate
+
+- (void)onGetOfflineMapState:(int)type withState:(int)state{
+    NSLog(@"离线地图事件接收：type:%d,state:%d",type,state);
+    
+}
+
+#pragma mark - BMKMapViewDelegate
+- (void)mapViewDidFinishLoading:(BMKMapView *)mapView{
+    //[mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
+    NSLog(@"完成load");
+}
+
+#pragma mark - 集中处理显示的Annotation
+- (BMKAnnotationView *)mapView:(BMKMapView *)mapView viewForAnnotation:(id <BMKAnnotation>)annotation{
+    BMKAnnotationView *av = nil;
+    if ([annotation isKindOfClass:[CZWMapAnnotation class]]) {
+        CZWMapAnnotation *czwAnnotation = (CZWMapAnnotation *)annotation;
+        av = [[BMKAnnotationView alloc]initWithAnnotation:czwAnnotation reuseIdentifier:NSStringFromClass([CZWMapAnnotation class])];
+        switch (czwAnnotation.type) {
+            case CZWMapAnnotationTypeStarting :{
+                av.image = [UIImage imageNamed:@"icon_line_start"];
+                av.centerOffset = CGPointMake(0, -10);
+                break;
+            }
+            case CZWMapAnnotationTypeTerminal :{
+                av.image = [UIImage imageNamed:@"icon_line_end"];
+                av.centerOffset = CGPointMake(0, -10);
+                break;
+            }
+            case CZWMapAnnotationTypeBus :{
+                av.image = [UIImage  imageNamed:@"ic_position"];
+                av.centerOffset = CGPointMake(0, -10);
+                break;
+            }
+            case CZWMapAnnotationTypeMetro :{
+                break;
+            }
+            case CZWMapAnnotationTypeDrivingCar :{
+                break;
+            }
+            case CZWMapAnnotationTypeWalking :{
+                UIImage *image = [UIImage imageNamed:@"icon_direction"];
+                av.image = [image imageRotatedByDegrees:czwAnnotation.degree];
+                av.centerOffset = CGPointMake(0, 0);
+                break;
+            }
+            case CZWMapAnnotationTypeUnknow:{
+                break;
+            }
+        }
+    }
+    return av;
+}
+
+#pragma mark - 集中处理显示的覆盖物（线路）
+- (BMKOverlayView *)mapView:(BMKMapView *)mapView viewForOverlay:(id <BMKOverlay>)overlay{
+    if ([overlay isKindOfClass:[BMKPolyline class]]) {
+        BMKPolylineView* polylineView = [[BMKPolylineView alloc] initWithOverlay:overlay];
+        polylineView.fillColor = [[UIColor colorWithRed:24/255.0 green:150/255.0 blue:214/255.0 alpha:1] colorWithAlphaComponent:1];
+        polylineView.strokeColor = [[UIColor colorWithRed:24/255.0 green:150/255.0 blue:214/255.0 alpha:1] colorWithAlphaComponent:1];
+        polylineView.lineWidth = 3.50;
+        return polylineView;
+    }
+    return nil;
+}
+
+- (void)mapView:(BMKMapView *)mapView didSelectAnnotationView:(BMKAnnotationView *)view{
+    
+}
+
 
 #pragma mark - UIAlertViewDelegate
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
@@ -464,6 +567,7 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 - (void)onGetPermissionState:(int)iError{
     if (iError == BMK_SEARCH_NO_ERROR) {
         NSLog(@"BaiduMap授权验证正常");
+        
     } else {
         NSLog(@"BaiduMap授权验证错误号%d，当前方法:%s",iError, __FUNCTION__);
     }
@@ -476,7 +580,7 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
  *  用户签名状态改变
  */
 - (void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status{
-    
+    [self checkUserAuthorization];
 }
 
 #pragma mark - Lazy Loading
@@ -535,19 +639,13 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
     return _baiduRouteSearch;
 }
 
-//- (NSMutableArray *)busPoiArray{
-//    if (!_busPoiArray) {
-//        _busPoiArray = [[NSMutableArray alloc]init];
-//    }
-//    return _busPoiArray;
-//}
-//
-//- (NSMutableArray *)keywordPoiArray{
-//    if (!_keywordPoiArray) {
-//        _keywordPoiArray = [[NSMutableArray alloc]init];
-//    }
-//    return _keywordPoiArray;
-//}
+- (BMKOfflineMap *)baiduOfflineMap{
+    if (!_baiduOfflineMap) {
+        _baiduOfflineMap = [[BMKOfflineMap alloc]init];
+        _baiduOfflineMap.delegate = self;
+    }
+    return _baiduOfflineMap;
+}
 
 #pragma mark - Set/Get
 - (void)setCacheAddress:(NSString *)cacheAddress{
