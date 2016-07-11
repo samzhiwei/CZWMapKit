@@ -34,24 +34,41 @@
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rri-w5-VfI">
                                 <rect key="frame" x="-23" y="-15" width="46" height="30"/>
                                 <state key="normal" title="Button"/>
+                                <connections>
+                                    <action selector="addBtn:" destination="BYZ-38-t0r" eventType="touchUpInside" id="WBS-dJ-Woq"/>
+                                </connections>
                             </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="CNI-3t-8Bq">
+                                <rect key="frame" x="-42" y="-21" width="42" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                <nil key="highlightedColor"/>
+                                <variation key="widthClass=compact" misplaced="YES">
+                                    <rect key="frame" x="173" y="257" width="42" height="21"/>
+                                </variation>
+                            </label>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
                             <constraint firstItem="EtG-gV-i2R" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" constant="200" id="1hR-AL-t8I"/>
                             <constraint firstItem="rri-w5-VfI" firstAttribute="centerY" secondItem="EtG-gV-i2R" secondAttribute="centerY" id="8j6-AI-l6o"/>
+                            <constraint firstItem="CNI-3t-8Bq" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="BKX-M5-DK8"/>
                             <constraint firstItem="WPA-2X-Vb2" firstAttribute="centerY" secondItem="EtG-gV-i2R" secondAttribute="centerY" id="C1Q-3n-Yp9"/>
                             <constraint firstItem="WPA-2X-Vb2" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" constant="100" id="FuA-gs-NZW"/>
                             <constraint firstItem="rri-w5-VfI" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" constant="-100" id="LhB-JR-a6F"/>
                             <constraint firstItem="EtG-gV-i2R" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="v0F-5F-rSj"/>
+                            <constraint firstItem="CNI-3t-8Bq" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="zCA-dm-C3N"/>
                         </constraints>
                         <variation key="default">
                             <mask key="subviews">
                                 <exclude reference="EtG-gV-i2R"/>
                                 <exclude reference="WPA-2X-Vb2"/>
                                 <exclude reference="rri-w5-VfI"/>
+                                <exclude reference="CNI-3t-8Bq"/>
                             </mask>
                             <mask key="constraints">
+                                <exclude reference="BKX-M5-DK8"/>
+                                <exclude reference="zCA-dm-C3N"/>
                                 <exclude reference="8j6-AI-l6o"/>
                                 <exclude reference="LhB-JR-a6F"/>
                                 <exclude reference="1hR-AL-t8I"/>
@@ -65,8 +82,11 @@
                                 <include reference="EtG-gV-i2R"/>
                                 <include reference="WPA-2X-Vb2"/>
                                 <include reference="rri-w5-VfI"/>
+                                <include reference="CNI-3t-8Bq"/>
                             </mask>
                             <mask key="constraints">
+                                <include reference="BKX-M5-DK8"/>
+                                <include reference="zCA-dm-C3N"/>
                                 <include reference="8j6-AI-l6o"/>
                                 <include reference="LhB-JR-a6F"/>
                                 <include reference="1hR-AL-t8I"/>
@@ -80,6 +100,7 @@
                         <outlet property="addBtn" destination="rri-w5-VfI" id="uWZ-tL-PNc"/>
                         <outlet property="button" destination="EtG-gV-i2R" id="w1J-sO-kHr"/>
                         <outlet property="deleteBtn" destination="WPA-2X-Vb2" id="9IH-bB-Elw"/>
+                        <outlet property="label" destination="CNI-3t-8Bq" id="M0R-WM-xog"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>

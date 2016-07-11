@@ -35,30 +35,52 @@ UIAlertViewDelegate
 @property (strong, nonatomic) BMKBusLineSearch *baiduBusLineSearch;//汽车路线详情搜索
 @property (strong, nonatomic) BMKRouteSearch *baiduRouteSearch;//百度公交路径规划方案 搜索
 
-
-
-/**
- *  临时存poi数据
- */
-//@property (strong, nonatomic) NSMutableArray <BMKPoiInfo *>*busPoiArray;
-//@property (strong, nonatomic) NSMutableArray <BMKPoiInfo *>*keywordPoiArray;
+@property (assign, nonatomic) BOOL stopLocating;//默认NO,是否持续定位锁
 
 #pragma mark - 回调block
 //成功
+typedef BOOL(^SucceedLocationBlock)(CLLocationCoordinate2D ,CZWMapKit *);
+/**
+ *  定位回调block,返回YES就停止定位,
+ */
+@property (copy, nonatomic) SucceedLocationBlock locationBlock;
+typedef void(^SucceedReverseGeoCodeBlock)(BMKReverseGeoCodeResult * ,CZWMapKit *);
+/**
+ *  反地理编码回调block
+ */
+@property (copy, nonatomic) SucceedReverseGeoCodeBlock reverseGeoCodeBlock;
+
 typedef void(^SucceedBusLineBlock)(NSMutableArray <BMKPoiInfo *>* ,CZWMapKit *);
+/**
+ *  BusLine信息回调block
+ */
 @property (copy, nonatomic) SucceedBusLineBlock busLineBlock;
 typedef void(^SucceedBusLineDetailBlock)(BMKBusLineResult * ,CZWMapView *,CZWMapKit *);
+/**
+ *  BusLine详情信息回调Block
+ */
 @property (copy, nonatomic) SucceedBusLineDetailBlock busLineDetailBlock;
 typedef void(^SucceedWalkingRouteBlock)(BMKWalkingRouteLine * ,CZWMapView * ,CZWMapKit *);
+/**
+ *  走路线路详情信息回调Block
+ */
 @property (copy, nonatomic) SucceedWalkingRouteBlock walkingRouteBlock;
+
 //失败
 typedef void(^FailureBlock)(BMKSearchErrorCode);
+/**
+ *  回调失败共用Block
+ */
 @property (copy, nonatomic) FailureBlock failureBlock;
 
-@property (assign, nonatomic) CZWLocatingMode locatingMode;//用户设定,不能修改
+typedef void(^FailureLocationBlock)(NSError *);
 /**
- *  地址缓存最新的
+ *  定位失败用回调Block
  */
+@property (copy, nonatomic) FailureLocationBlock failureLocationBlock;
+
+
+
 
 
 @end
@@ -68,12 +90,20 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 @synthesize baiduOfflineMap = _baiduOfflineMap;
 #pragma mark - ====BaseSetting====
 #pragma mark - Api - BaseSetting
+- (instancetype)init{
+    self = [super init];
+    if (self) {
+        self.stopLocating = NO;
+    }
+    return self;
+}
+
 + (instancetype)shareMapKit{
     static dispatch_once_t once;
     static CZWMapKit *sharedInstance;
     dispatch_once(&once, ^ {
         sharedInstance = [[CZWMapKit alloc] init];
-        NSLog(@"shared = %p",sharedInstance);
+        //NSLog(@"shared = %p",sharedInstance);
     });
     return sharedInstance;
 }
@@ -84,10 +114,13 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
     [self.mapView removeFromSuperview];
     [self setValue:nil forKey:@"mapView"];
     
+    _locationBlock = nil;
+    _reverseGeoCodeBlock = nil;
     _busLineBlock = nil;
     _busLineDetailBlock = nil;
     _walkingRouteBlock = nil;
     _failureBlock = nil;
+    _failureLocationBlock = nil;
     
     _locationManager.delegate = nil;
     _locationManager = nil;
@@ -143,8 +176,22 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 /**
  *  加载地图
  */
-- (void)czw_loadingMapView:(id<CZWMapViewDelegate>)delegate{
-    [self requestLocationDelegate:delegate];
+- (void)czw_setDelegate:(id<CZWMapViewDelegate>)delegate buildMapView:(CZWMapView * (^)(CZWMapKit *mapKit))maker handler:(void (^)(CZWMapView *mapView))handler{
+    _mapViewDelegate = delegate;
+    [self czw_buildMapView:^CZWMapView *(CZWMapKit *mapKit) {
+        return maker(mapKit);
+    } handler:^(CZWMapView *mapView) {
+        handler(mapView);
+    }];
+}
+
+- (void)czw_buildMapView:(CZWMapView * (^)(CZWMapKit *mapKit))maker handler:(void (^)(CZWMapView *mapView))handler{
+    __weak typeof(self) weakSelf = self;
+    CZWMapView *mapView = maker(weakSelf);
+    [self setValue:mapView forKey:@"mapView"];
+    [self userTrackingMode:BMKUserTrackingModeNone];
+    handler(mapView);
+    mapView = nil;
 }
 
 #pragma mark - Private - BaseSetting
@@ -178,14 +225,14 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 /**
  *  开启定位
  */
-- (void)czw_startLocatingDelegate:(id<CZWMapKitLocationDelegate>)delegate locatingMode:(CZWLocatingMode)mode{
+- (void)czw_startLocatingSucceedBlock:(BOOL (^)(CLLocationCoordinate2D coor ,CZWMapKit *mapKit))succeedBlock failureBlock:(void (^)(NSError *errorCode))failureBlock{
     [self baseLocatingSetup];
-    self.locationDelegate = delegate;
-    self.locatingMode = mode;
     
-    //[self czw_userAuthorization:kCLAuthorizationStatusAuthorizedWhenInUse];
+    self.locationBlock = succeedBlock;
+    self.failureLocationBlock = failureBlock;
     
     [self.baiduLocService startUserLocationService];
+    
 }
 /**
  *  停止定位
@@ -196,30 +243,18 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 /**
  *  开启反地理编码
  */
-- (void)czw_reverseGeoCode:(CLLocationCoordinate2D)coor{
-    NSLog(@"开始反地理编码:位置(%f, %f)",coor.latitude, coor.longitude);
+
+- (void)czw_reverseGeoCode:(CLLocationCoordinate2D)coor succeedBlock:(void (^)(BMKReverseGeoCodeResult *geoResult ,CZWMapKit *mapKit))succeedBlock failureBlock:(void (^)(BMKSearchErrorCode errorCode))failureBlock{
+    self.reverseGeoCodeBlock = succeedBlock;
+    self.failureBlock = failureBlock;
+    
+    //NSLog(@"开始反地理编码:位置(%f, %f)",coor.latitude, coor.longitude);
     BMKReverseGeoCodeOption* reverseOp = [[BMKReverseGeoCodeOption alloc]init];
     reverseOp.reverseGeoPoint = coor;
     [self.baiduGeoCodeSearch reverseGeoCode:reverseOp];
 }
 
 #pragma mark - Private - Location Service
-/**
- *  设置mapView
- */
-- (void)requestLocationDelegate:(id <CZWMapViewDelegate>)delegate{
-    self.mapViewDelegate = delegate;
-    if (!self.mapView) {
-        __weak typeof(self) weakSelf = self;
-        [self setValue:[delegate showMapViewWithMapKit:weakSelf] forKey:@"mapView"];
-        NSLog(@"mapView = %p",self.mapView);
-        [self userTrackingMode:BMKUserTrackingModeNone];
-        
-        [delegate addMapInView:self.mapView];
-    } else {
-        NSLog(@"mapView已存在不重新添加");
-    }
-}
 
 - (void)userTrackingMode:(BMKUserTrackingMode)mode{
     _mapView.showsUserLocation = NO;//先关闭显示的定位图层
@@ -329,27 +364,26 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 }
 
 - (void)didUpdateBMKUserLocation:(BMKUserLocation *)userLocation{
-    NSLog(@"定位成功,我的位置:(%f, %f)",userLocation.location.coordinate.latitude, userLocation.location.coordinate.longitude);
+    //NSLog(@"定位成功,我的位置:(%f, %f)",userLocation.location.coordinate.latitude, userLocation.location.coordinate.longitude);
+    //缓存
     [self setValue:[userLocation.location copy] forKey:@"cacheUserLocation"];
-    
-    if ([self.locationDelegate respondsToSelector:@selector(mapKit:didLocationPostion:)]) {
-        __weak typeof(self) weakSelf = self;
-        [self.locationDelegate mapKit:weakSelf didLocationPostion:userLocation.location.coordinate];
+    //call block
+    __weak typeof(self) weakSelf = self;
+    if (self.locationBlock) {
+        self.stopLocating = self.locationBlock(userLocation.location.coordinate ,weakSelf);
     }
+    
     
     [self.mapView updateLocationData:userLocation];
-    
-    if ([self.locationDelegate respondsToSelector:@selector(didFinishLocationPostionWithMapKit:)]) {
-        __weak typeof(self) weakSelf = self;
-        [self.locationDelegate didFinishLocationPostionWithMapKit:weakSelf];
-    }
-    
-    if (self.locatingMode == CZWLocatingOnce) {
+    if (self.stopLocating) {
         [self czw_stopLocating];
     }
     
 }
 - (void)didFailToLocateUserWithError:(NSError *)error{
+    if (self.failureLocationBlock) {
+        self.failureLocationBlock(error);
+    }
     NSLog(@"定位服务失败:domain:%@,code:%ld",error.domain,(long)error.code);
 }
 
@@ -361,23 +395,21 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 - (void)onGetReverseGeoCodeResult:(BMKGeoCodeSearch *)searcher result:(BMKReverseGeoCodeResult *)result errorCode:(BMKSearchErrorCode)error{
     
     if (error == BMK_SEARCH_NO_ERROR) {
+        NSLog(@"反地理编码成功地址：%@",result.address);
         //缓存
         [self setValue:[result.addressDetail.city copy] forKey:@"cacheCity"];
         [self setValue:[result.address copy] forKey:@"cacheAddress"];
+        //call block
         __weak typeof(self) weakSelf = self;
-        if ([self.locationDelegate respondsToSelector:@selector(mapKit:didLocationCity:)]) {
-            [self.locationDelegate mapKit:weakSelf didLocationCity:result.addressDetail];
-        }
-        if ([self.locationDelegate respondsToSelector:@selector(mapKit:didLocationAddress:)]) {
-            [self.locationDelegate mapKit:weakSelf didLocationAddress:result.address];
-        }
-        
-        if ([self.locationDelegate respondsToSelector:@selector(didFinishGeoLocationPostionWithMapKit:)]) {
-            [self.locationDelegate didFinishGeoLocationPostionWithMapKit:weakSelf];
+        if (self.reverseGeoCodeBlock) {
+            self.reverseGeoCodeBlock(result ,weakSelf);
         }
         
     } else {
         NSLog(@"error = %d 当前线程:%@,当前方法:%s", error,[NSThread currentThread], __FUNCTION__);
+        if (self.failureBlock) {
+            self.failureBlock(error);
+        }
     }
     
 }
@@ -402,7 +434,7 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
                 [keywordPoiArray addObject:aPoi];
             }
         }
-        //发送
+        //call block
         if (self.busLineBlock && busPoiArray) {
             __weak typeof(self) weakSelf = self;
             self.busLineBlock(busPoiArray,weakSelf);
@@ -449,14 +481,14 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 
 - (void)onGetDrivingRouteResult:(BMKRouteSearch *)searcher result:(BMKDrivingRouteResult *)result errorCode:(BMKSearchErrorCode)error
 {
-    int price = 0;
-    if (error == BMK_SEARCH_NO_ERROR) {
-        BMKDrivingRouteLine * plan = (BMKDrivingRouteLine*)result.routes[0];
-        float distance = plan.distance /1000.0f;//换算成公里
-        //计算车费: (总距离-3公里）*3（每公里收费）+10元（起步费）
-        distance = distance<3?3:distance;
-        price = (distance-3)*3 + 10;
-    }
+//    int price = 0;
+//    if (error == BMK_SEARCH_NO_ERROR) {
+//        BMKDrivingRouteLine * plan = (BMKDrivingRouteLine*)result.routes[0];
+//        float distance = plan.distance /1000.0f;//换算成公里
+//        //计算车费: (总距离-3公里）*3（每公里收费）+10元（起步费）
+//        distance = distance<3?3:distance;
+//        price = (distance-3)*3 + 10;
+//    }
 }
 
 #pragma mark -  BMKOfflineMapDelegate
@@ -467,9 +499,28 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 }
 
 #pragma mark - BMKMapViewDelegate
-- (void)mapViewDidFinishLoading:(BMKMapView *)mapView{
+- (void)mapViewDidFinishLoading:(CZWMapView *)mapView{
     //[mapView setCenterCoordinate:kCZWMapKit.cacheUserLocation.coordinate animated:YES];
-    NSLog(@"完成load");
+    //NSLog(@"完成load");
+    
+    if ([_mapViewDelegate respondsToSelector:@selector(czw_mapViewDidFinishLoading:)]) {
+        [_mapViewDelegate czw_mapViewDidFinishLoading:mapView];
+    }
+}
+
+- (void)mapView:(CZWMapView *)mapView didSelectAnnotationView:(BMKAnnotationView *)view{
+    [mapView setCenterCoordinate:view.annotation.coordinate animated:YES];
+    
+    if ([_mapViewDelegate respondsToSelector:@selector(czw_mapView:didSelectAnnotationView:)]) {
+        [_mapViewDelegate czw_mapView:mapView didSelectAnnotationView:view];
+    }
+}
+
+- (void)mapView:(CZWMapView *)mapView regionDidChangeAnimated:(BOOL)animated{
+    //NSLog(@"地图移动了");
+    if ([_mapViewDelegate respondsToSelector:@selector(czw_mapView:regionDidChangeAnimated:)]) {
+        [_mapViewDelegate czw_mapView:mapView regionDidChangeAnimated:animated];
+    }
 }
 
 #pragma mark - 集中处理显示的Annotation
@@ -477,7 +528,11 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
     BMKAnnotationView *av = nil;
     if ([annotation isKindOfClass:[CZWMapAnnotation class]]) {
         CZWMapAnnotation *czwAnnotation = (CZWMapAnnotation *)annotation;
-        av = [[BMKAnnotationView alloc]initWithAnnotation:czwAnnotation reuseIdentifier:NSStringFromClass([CZWMapAnnotation class])];
+        av = [mapView dequeueReusableAnnotationViewWithIdentifier:NSStringFromClass([CZWMapAnnotation class])];
+        if (!av) {
+            av = [[BMKAnnotationView alloc]initWithAnnotation:czwAnnotation reuseIdentifier:NSStringFromClass([CZWMapAnnotation class])];
+        }
+        
         switch (czwAnnotation.type) {
             case CZWMapAnnotationTypeStarting :{
                 av.image = [UIImage imageNamed:@"icon_line_start"];
@@ -492,6 +547,12 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
             case CZWMapAnnotationTypeBus :{
                 av.image = [UIImage  imageNamed:@"ic_position"];
                 av.centerOffset = CGPointMake(0, -10);
+                UISwitch *sw = [[UISwitch alloc]init];
+                //view.backgroundColor = [UIColor redColor];
+                av.paopaoView.frame = CGRectMake(0, 0, av.paopaoView.frame.size.width + 30, av.paopaoView.frame.size.height);
+                av.paopaoView.backgroundColor = [UIColor grayColor];
+                av.rightCalloutAccessoryView = [[BMKActionPaopaoView alloc]initWithCustomView:sw];
+                av.leftCalloutAccessoryView.backgroundColor = [UIColor yellowColor];
                 break;
             }
             case CZWMapAnnotationTypeMetro :{
@@ -526,11 +587,6 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
     return nil;
 }
 
-- (void)mapView:(BMKMapView *)mapView didSelectAnnotationView:(BMKAnnotationView *)view{
-    
-}
-
-
 #pragma mark - UIAlertViewDelegate
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
     if (alertView.tag == LOCATION_AUTHORIZATION_DENIED) {
@@ -541,7 +597,6 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
             } else {
                 NSLog(@"打开prefs:root=privacy失败");
             }
-            
         }
     }
 }
@@ -669,6 +724,24 @@ typedef void(^FailureBlock)(BMKSearchErrorCode);
 
 - (NSNumber *)totalRecvFlaxLength{
     return [NSNumber numberWithInt:[self.mapManager getTotalRecvFlaxLength]];
+}
+
+#pragma mark - ====Calculate Method====
+//百度地图提供
+- (BOOL)confirmCoor:(CLLocationCoordinate2D)coor insideRoundCenter:(CLLocationCoordinate2D)center radius:(double)radius{
+    return BMKCircleContainsCoordinate(coor, center, radius);
+}
+
+- (int)measureDistanceFrom:(CLLocationCoordinate2D)from to:(CLLocationCoordinate2D)to{
+    return BMKMetersBetweenMapPoints(BMKMapPointForCoordinate(from), BMKMapPointForCoordinate(to));
+}
+
+- (CLLocationCoordinate2D)transformMapPointToCoor:(BMKMapPoint)mapPoint{
+    return BMKCoordinateForMapPoint(mapPoint);
+}
+
+- (BMKMapPoint)transformCoorToMapPoint:(CLLocationCoordinate2D)coor{
+    return BMKMapPointForCoordinate(coor);
 }
 
 @end

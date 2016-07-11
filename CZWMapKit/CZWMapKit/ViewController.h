@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import "CZWMapKit.h"
-@interface ViewController : UIViewController <CZWMapKitLocationDelegate,BMKMapViewDelegate,CZWMapViewDelegate>
+@interface ViewController : UIViewController <BMKMapViewDelegate,CZWMapViewDelegate>
 
 
 @end
