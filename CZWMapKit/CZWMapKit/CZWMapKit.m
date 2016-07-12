@@ -10,9 +10,19 @@
 #define POI_SEARCH_PAGE_INDEX 0
 #define POI_SEARCH_PAGE_CAPACITY 10
 
+#define lockNotiDidUpdateUserLocation YES //通知锁
+
 #import "CZWMapKit.h"
 #import <objc/runtime.h>
 #import "UIImage+Rotate.h"
+typedef NS_ENUM(NSUInteger, CZWCleanBlockType) {
+    CZWCleanBlockLocation,
+    CZWCleanBlockReverseGeoCode,
+    CZWCleanBlockBusLine,
+    CZWCleanBlockBusLineDetail,
+    CZWCleanBlockWalkingRoute,
+    CZWCleanBlockOfflineMap
+};
 
 @interface CZWMapKit () <
 BMKGeneralDelegate,
@@ -26,8 +36,8 @@ BMKRouteSearchDelegate,
 BMKOfflineMapDelegate,
 UIAlertViewDelegate
 >
-@property (strong, nonatomic) BMKMapManager *mapManager;//服务启动类
 
+@property (strong, nonatomic) BMKMapManager *mapManager;//服务启动类
 @property (strong, nonatomic) CLLocationManager *locationManager;//系统授权定位
 @property (strong, nonatomic) BMKLocationService *baiduLocService;//定位服务
 @property (strong, nonatomic) BMKGeoCodeSearch *baiduGeoCodeSearch;//地理编码
@@ -35,7 +45,8 @@ UIAlertViewDelegate
 @property (strong, nonatomic) BMKBusLineSearch *baiduBusLineSearch;//汽车路线详情搜索
 @property (strong, nonatomic) BMKRouteSearch *baiduRouteSearch;//百度公交路径规划方案 搜索
 
-@property (assign, nonatomic) BOOL stopLocating;//默认NO,是否持续定位锁
+
+@property (assign, nonatomic,getter=isLocating) BOOL locating;//默认NO,是否持续定位锁
 
 #pragma mark - 回调block
 //成功
@@ -66,6 +77,18 @@ typedef void(^SucceedWalkingRouteBlock)(BMKWalkingRouteLine * ,CZWMapView * ,CZW
  */
 @property (copy, nonatomic) SucceedWalkingRouteBlock walkingRouteBlock;
 
+/**
+ *  offline离线地图下载回调Block
+ */
+typedef void(^SucceedOfflineMapCallBlock)(BMKOLUpdateElement *);
+@property (copy, nonatomic) SucceedOfflineMapCallBlock offLineMapBlock;
+
+/**
+ *  离线地图下载完成回调Block
+ */
+typedef void(^FinishDownLoadBlock)(BOOL);
+@property (copy, nonatomic) FinishDownLoadBlock finishBlock;
+
 //失败
 typedef void(^FailureBlock)(BMKSearchErrorCode);
 /**
@@ -93,9 +116,34 @@ typedef void(^FailureLocationBlock)(NSError *);
 - (instancetype)init{
     self = [super init];
     if (self) {
-        self.stopLocating = NO;
+        [self initSetting];
+        self.locating = NO;
     }
     return self;
+}
+
+- (void)initSetting{
+    NSString *cacheUserPostion = [[NSUserDefaults standardUserDefaults] objectForKey:@"cacheUserPostion"];
+    if (!cacheUserPostion) {
+        cacheUserPostion = @"";
+        self.cacheUserPostion = cacheUserPostion;
+    }
+    NSString *cacheLocation = [[NSUserDefaults standardUserDefaults] objectForKey:@"cacheLocation"];
+    if (!cacheLocation) {
+        cacheLocation = @"";
+        self.cacheUserPostion = cacheLocation;
+    }
+    NSString *cityPinyin = [[NSUserDefaults standardUserDefaults] objectForKey:@"ecity"];
+    if (!cityPinyin) {
+        cityPinyin = @"";
+        self.cacheCityPinyin = cityPinyin;
+    }
+    NSString *cityName  = [[NSUserDefaults standardUserDefaults] objectForKey:@"mcity"];
+    if (!cityName) {
+        cityName = @"";
+        self.cacheCity = cityName;
+    }
+    
 }
 
 + (instancetype)shareMapKit{
@@ -119,6 +167,8 @@ typedef void(^FailureLocationBlock)(NSError *);
     _busLineBlock = nil;
     _busLineDetailBlock = nil;
     _walkingRouteBlock = nil;
+    _offLineMapBlock = nil;
+    _finishBlock = nil;
     _failureBlock = nil;
     _failureLocationBlock = nil;
     
@@ -140,6 +190,48 @@ typedef void(^FailureLocationBlock)(NSError *);
     _baiduRouteSearch.delegate = nil;
     _baiduRouteSearch = nil;
     
+}
+
+- (void)removeMapView{
+    if (_mapView) {
+        [self.mapView removeFromSuperview];
+        [self setValue:nil forKey:@"mapView"];
+    }
+}
+
+- (void)cleanBlock:(CZWCleanBlockType)cleanType{
+    switch (cleanType) {
+        case CZWCleanBlockLocation :{
+            _locationBlock = nil;
+            _failureLocationBlock = nil;
+            break;
+        }
+        case CZWCleanBlockReverseGeoCode :{
+            _reverseGeoCodeBlock = nil;
+            _failureBlock = nil;
+            break;
+        }
+        case CZWCleanBlockBusLine :{
+            _busLineBlock = nil;
+            _failureBlock = nil;
+            break;
+        }
+        case CZWCleanBlockBusLineDetail:{
+            _busLineDetailBlock = nil;
+            _failureBlock = nil;
+            break;
+        }
+        case CZWCleanBlockWalkingRoute: {
+            _walkingRouteBlock = nil;
+            _failureBlock = nil;
+            break;
+        }
+        case CZWCleanBlockOfflineMap: {
+            _offLineMapBlock = nil;
+            _finishBlock = nil;
+            break;
+        }
+    }
 }
 /**
  *  global setting
@@ -223,6 +315,14 @@ typedef void(^FailureLocationBlock)(NSError *);
 #pragma mark - ====LocationService====
 #pragma mark - Api - Location Service
 /**
+ *  通知方式返回
+ */
+- (void)czw_startLocating{
+    [self baseLocatingSetup];
+    self.locating = YES;
+    [self.baiduLocService startUserLocationService];
+}
+/**
  *  开启定位
  */
 - (void)czw_startLocatingSucceedBlock:(BOOL (^)(CLLocationCoordinate2D coor ,CZWMapKit *mapKit))succeedBlock failureBlock:(void (^)(NSError *errorCode))failureBlock{
@@ -238,6 +338,7 @@ typedef void(^FailureLocationBlock)(NSError *);
  *  停止定位
  */
 - (void)czw_stopLocating{
+    self.locating = NO;
     [self.baiduLocService stopUserLocationService];
 }
 /**
@@ -336,14 +437,16 @@ typedef void(^FailureLocationBlock)(NSError *);
 }
 
 #pragma mark - ====OffLineMap====
-- (NSArray *)czw_startOffLineMapService:(NSArray* (^)(BMKOfflineMap *offlineMap))succeedBlock{
-    BMKOfflineMap *offlineMap = self.baiduOfflineMap;
-    return succeedBlock(offlineMap);
+- (void)czw_startDownLoadCity:(int)cityId succeedBlock:(void (^)(BMKOLUpdateElement *))succeedBlock finishBlock:(void (^)(BOOL finish))finishBlock{
+    self.offLineMapBlock = succeedBlock;
+    self.finishBlock = finishBlock;
+    [self.baiduOfflineMap start:cityId];
 }
 
-- (void)czw_offlineMapHandler:(void (^)(BMKOfflineMap *offlineMap))handler{
-    BMKOfflineMap *offlineMap = self.baiduOfflineMap;
-    return handler(offlineMap);
+- (void)czw_startUpdateCity:(int)cityId succeedBlock:(void (^)(BMKOLUpdateElement *))succeedBlock finishBlock:(void (^)(BOOL finish))finishBlock{
+    self.offLineMapBlock = succeedBlock;
+    self.finishBlock = finishBlock;
+    [self.baiduOfflineMap update:cityId];
 }
 
 
@@ -366,23 +469,31 @@ typedef void(^FailureLocationBlock)(NSError *);
 - (void)didUpdateBMKUserLocation:(BMKUserLocation *)userLocation{
     //NSLog(@"定位成功,我的位置:(%f, %f)",userLocation.location.coordinate.latitude, userLocation.location.coordinate.longitude);
     //缓存
-    [self setValue:[userLocation.location copy] forKey:@"cacheUserLocation"];
+    NSString *position = [NSString stringWithFormat:@"%f,%f",userLocation.location.coordinate.latitude,userLocation.location.coordinate.longitude];
+    [self setValue:position forKey:@"cacheUserPostion"];
+    [[NSUserDefaults standardUserDefaults] setObject:position forKey:udkCachePosition];
     //call block
     __weak typeof(self) weakSelf = self;
     if (self.locationBlock) {
-        self.stopLocating = self.locationBlock(userLocation.location.coordinate ,weakSelf);
+        BOOL needStopLocating = self.locationBlock(userLocation.location.coordinate ,weakSelf);
+        if (needStopLocating) {
+            [self czw_stopLocating];
+            [self cleanBlock:CZWCleanBlockLocation];//结束清除Block
+        }
     }
     
+    if (self.locating) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:ntkDidUpdateUserLocation object:nil userInfo:@{ntkDidUpdateUserLocation : userLocation.location}];
+    }
     
     [self.mapView updateLocationData:userLocation];
-    if (self.stopLocating) {
-        [self czw_stopLocating];
-    }
+    
     
 }
 - (void)didFailToLocateUserWithError:(NSError *)error{
     if (self.failureLocationBlock) {
         self.failureLocationBlock(error);
+        [self cleanBlock:CZWCleanBlockLocation];//结束清除Block
     }
     NSLog(@"定位服务失败:domain:%@,code:%ld",error.domain,(long)error.code);
 }
@@ -398,17 +509,21 @@ typedef void(^FailureLocationBlock)(NSError *);
         NSLog(@"反地理编码成功地址：%@",result.address);
         //缓存
         [self setValue:[result.addressDetail.city copy] forKey:@"cacheCity"];
+        [[NSUserDefaults standardUserDefaults] setObject:result.addressDetail.city forKey:udkCacheCity];
         [self setValue:[result.address copy] forKey:@"cacheAddress"];
+        [[NSUserDefaults standardUserDefaults] setObject:result.address forKey:udkCacheLocation];
         //call block
         __weak typeof(self) weakSelf = self;
         if (self.reverseGeoCodeBlock) {
             self.reverseGeoCodeBlock(result ,weakSelf);
+            [self cleanBlock:CZWCleanBlockReverseGeoCode];//结束清除Block
         }
         
     } else {
         NSLog(@"error = %d 当前线程:%@,当前方法:%s", error,[NSThread currentThread], __FUNCTION__);
         if (self.failureBlock) {
             self.failureBlock(error);
+            [self cleanBlock:CZWCleanBlockReverseGeoCode];//结束清除Block
         }
     }
     
@@ -438,12 +553,14 @@ typedef void(^FailureLocationBlock)(NSError *);
         if (self.busLineBlock && busPoiArray) {
             __weak typeof(self) weakSelf = self;
             self.busLineBlock(busPoiArray,weakSelf);
+            [self cleanBlock:CZWCleanBlockBusLine];//结束清除Block
         }
 #warning todo:非公交线路poi处理
         
     } else {
         if (self.failureBlock) {
             self.failureBlock(errorCode);
+            [self cleanBlock:CZWCleanBlockBusLine];//结束清除Block
         }
     }
 }
@@ -454,10 +571,12 @@ typedef void(^FailureLocationBlock)(NSError *);
         if (self.busLineDetailBlock) {
             __weak typeof(self) weakSelf = self;
             self.busLineDetailBlock(busLineResult, weakSelf.mapView, weakSelf);
+            [self cleanBlock:CZWCleanBlockBusLineDetail];//结束清除Block
         }
     } else {
         if (self.failureBlock) {
             self.failureBlock(error);
+            [self cleanBlock:CZWCleanBlockBusLineDetail];//结束清除Block
         }
     }
 }
@@ -469,12 +588,14 @@ typedef void(^FailureLocationBlock)(NSError *);
             if (self.walkingRouteBlock) {
                 __weak typeof(self) weakSelf = self;
                 self.walkingRouteBlock(aRouteLine ,weakSelf.mapView ,weakSelf);
+                [self cleanBlock:CZWCleanBlockWalkingRoute];//结束清除Block
             }
         }
     } else {
         NSLog(@"路线返回码：%d",error);
         if (self.failureBlock) {
             self.failureBlock(error);
+            [self cleanBlock:CZWCleanBlockWalkingRoute];//结束清除Block
         }
     }
 }
@@ -494,7 +615,48 @@ typedef void(^FailureLocationBlock)(NSError *);
 #pragma mark -  BMKOfflineMapDelegate
 
 - (void)onGetOfflineMapState:(int)type withState:(int)state{
-    NSLog(@"离线地图事件接收：type:%d,state:%d",type,state);
+//    NSLog(@"当前线程:%@,当前方法:%s",[NSThread currentThread], __FUNCTION__);
+    if (type == TYPE_OFFLINE_UPDATE) {
+        //id为state的城市正在下载或更新，start后会毁掉此类型
+        BMKOLUpdateElement* updateInfo;
+        updateInfo = [self.baiduOfflineMap getUpdateInfo:state];
+    
+        if (updateInfo.status == 4) {
+            if (self.finishBlock) {
+                self.finishBlock(YES);
+                [self cleanBlock:CZWCleanBlockOfflineMap];//结束清除Block
+            }
+        } else if (updateInfo.status == (5|6|7|8|9)) {
+            NSLog(@"下载出错");
+        }else {
+            if (self.offLineMapBlock && updateInfo) {
+                self.offLineMapBlock(updateInfo);
+            }
+        }
+        NSLog(@"城市名：%@,下载比例:%d",updateInfo.cityName,updateInfo.ratio);
+    }
+    if (type == TYPE_OFFLINE_NEWVER) {
+        //id为state的state城市有新版本,可调用update接口进行更新
+        BMKOLUpdateElement* updateInfo;
+        updateInfo = [self.baiduOfflineMap getUpdateInfo:state];
+        NSLog(@"是否有更新%d",updateInfo.update);
+    }
+    if (type == TYPE_OFFLINE_UNZIP) {
+        //正在解压第state个离线包，导入时会回调此类型
+        NSLog(@"正在解压第%d个离线包",state);
+    }
+    if (type == TYPE_OFFLINE_ZIPCNT) {
+        //检测到state个离线包，开始导入时会回调此类型
+        NSLog(@"检测到%d个离线包",state);
+    }
+    if (type == TYPE_OFFLINE_ERRZIP) {
+        //有state个错误包，导入完成后会回调此类型
+        NSLog(@"有%d个离线包导入错误",state);
+    }
+    if (type == TYPE_OFFLINE_UNZIPFINISH) {
+        NSLog(@"成功导入%d个离线包",state);
+        //导入成功state个离线包，导入成功后会回调此类型
+    }
     
 }
 
@@ -705,17 +867,22 @@ typedef void(^FailureLocationBlock)(NSError *);
 #pragma mark - Set/Get
 - (void)setCacheAddress:(NSString *)cacheAddress{
     _cacheAddress = cacheAddress;
-    [[NSNotificationCenter defaultCenter] postNotificationName:kCZWCacheAddressDidChange object:nil userInfo:@{kCZWCacheAddressDidChange : cacheAddress}];
+    [[NSNotificationCenter defaultCenter] postNotificationName:ntkCZWCacheAddressDidChange object:nil userInfo:@{ntkCZWCacheAddressDidChange : cacheAddress}];
 }
 
 - (void)setCacheCity:(NSString *)cacheCity{
     _cacheCity = cacheCity;
-    [[NSNotificationCenter defaultCenter] postNotificationName:kCZWCacheCityDidChange object:nil userInfo:@{kCZWCacheCityDidChange : cacheCity}];
+    [[NSNotificationCenter defaultCenter] postNotificationName:ntkCZWCacheCityDidChange object:nil userInfo:@{ntkCZWCacheCityDidChange : cacheCity}];
 }
 
-- (void)setCacheUserLocation:(CLLocation *)cacheUserLocation{
-    _cacheUserLocation = cacheUserLocation;
-    [[NSNotificationCenter defaultCenter] postNotificationName:kCZWCacheUserLocationDidChange object:nil userInfo:@{kCZWCacheUserLocationDidChange : cacheUserLocation}];
+- (void)setCacheUserPostion:(NSString *)cacheUserPostion{
+    _cacheUserPostion = cacheUserPostion;
+    [[NSNotificationCenter defaultCenter] postNotificationName:ntkCZWCacheUserLocationDidChange object:nil userInfo:@{ntkCZWCacheUserLocationDidChange : cacheUserPostion}];
+}
+
+- (void)setCacheCityPinyin:(NSString *)cacheCityPinyin {
+    _cacheCityPinyin = cacheCityPinyin;
+    [[NSNotificationCenter defaultCenter] postNotificationName:ntkCZWCacheCityPinyinDidChange object:nil userInfo:@{ntkCZWCacheCityPinyinDidChange : cacheCityPinyin}];
 }
 
 - (NSNumber *)totalSendFlaxLength{

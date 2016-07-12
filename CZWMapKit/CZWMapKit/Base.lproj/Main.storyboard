@@ -3,6 +3,7 @@
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
+        <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
     </dependencies>
     <scenes>
         <!--View Controller-->
@@ -43,10 +44,13 @@
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <nil key="highlightedColor"/>
-                                <variation key="widthClass=compact" misplaced="YES">
-                                    <rect key="frame" x="173" y="257" width="42" height="21"/>
-                                </variation>
                             </label>
+                            <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="VGh-2h-G5L">
+                                <rect key="frame" x="0.0" y="-2" width="150" height="2"/>
+                                <variation key="widthClass=compact" misplaced="YES">
+                                    <rect key="frame" x="113" y="188" width="150" height="2"/>
+                                </variation>
+                            </progressView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
@@ -56,6 +60,9 @@
                             <constraint firstItem="WPA-2X-Vb2" firstAttribute="centerY" secondItem="EtG-gV-i2R" secondAttribute="centerY" id="C1Q-3n-Yp9"/>
                             <constraint firstItem="WPA-2X-Vb2" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" constant="100" id="FuA-gs-NZW"/>
                             <constraint firstItem="rri-w5-VfI" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" constant="-100" id="LhB-JR-a6F"/>
+                            <constraint firstItem="CNI-3t-8Bq" firstAttribute="top" secondItem="VGh-2h-G5L" secondAttribute="bottom" constant="100" id="R6s-qC-KiB"/>
+                            <constraint firstItem="VGh-2h-G5L" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" constant="93" id="dgy-Bx-PvK"/>
+                            <constraint firstItem="VGh-2h-G5L" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="fwJ-Or-QUF"/>
                             <constraint firstItem="EtG-gV-i2R" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="v0F-5F-rSj"/>
                             <constraint firstItem="CNI-3t-8Bq" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="zCA-dm-C3N"/>
                         </constraints>
@@ -65,9 +72,13 @@
                                 <exclude reference="WPA-2X-Vb2"/>
                                 <exclude reference="rri-w5-VfI"/>
                                 <exclude reference="CNI-3t-8Bq"/>
+                                <exclude reference="VGh-2h-G5L"/>
                             </mask>
                             <mask key="constraints">
+                                <exclude reference="dgy-Bx-PvK"/>
+                                <exclude reference="fwJ-Or-QUF"/>
                                 <exclude reference="BKX-M5-DK8"/>
+                                <exclude reference="R6s-qC-KiB"/>
                                 <exclude reference="zCA-dm-C3N"/>
                                 <exclude reference="8j6-AI-l6o"/>
                                 <exclude reference="LhB-JR-a6F"/>
@@ -83,9 +94,13 @@
                                 <include reference="WPA-2X-Vb2"/>
                                 <include reference="rri-w5-VfI"/>
                                 <include reference="CNI-3t-8Bq"/>
+                                <include reference="VGh-2h-G5L"/>
                             </mask>
                             <mask key="constraints">
+                                <include reference="dgy-Bx-PvK"/>
+                                <include reference="fwJ-Or-QUF"/>
                                 <include reference="BKX-M5-DK8"/>
+                                <include reference="R6s-qC-KiB"/>
                                 <include reference="zCA-dm-C3N"/>
                                 <include reference="8j6-AI-l6o"/>
                                 <include reference="LhB-JR-a6F"/>
@@ -101,11 +116,12 @@
                         <outlet property="button" destination="EtG-gV-i2R" id="w1J-sO-kHr"/>
                         <outlet property="deleteBtn" destination="WPA-2X-Vb2" id="9IH-bB-Elw"/>
                         <outlet property="label" destination="CNI-3t-8Bq" id="M0R-WM-xog"/>
+                        <outlet property="progress" destination="VGh-2h-G5L" id="v5a-uT-IwF"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="309" y="294"/>
+            <point key="canvasLocation" x="204" y="291"/>
         </scene>
     </scenes>
 </document>

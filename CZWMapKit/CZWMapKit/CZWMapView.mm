@@ -45,7 +45,7 @@
     return self;
 }
 
-- (void)setupWithCustomType:(CZWMapViewCustomType)type delegate:(id<BMKMapViewDelegate>)delegate{
+- (void)setupWithCustomType:(CZWMapViewCustomType)type{
     switch (type) {
         case CZWMapViewCustomTypeTwo :{
             
@@ -57,17 +57,15 @@
             self.buildingsEnabled = YES;
             self.mapScaleBarPosition = CGPointMake(10, 10);
             [self updateLocationViewWithParam:[self customLocationAccuracyCircle]];
-            self.delegate = delegate;
-            
             break;
         }
     }
 }
 
-- (instancetype)initWithCustomType:(CZWMapViewCustomType)type delegate:(id<BMKMapViewDelegate>)delegate{
+- (instancetype)initWithDelegate:(id<BMKMapViewDelegate>)delegate{
     self = [self init];
     if (self) {
-        [self setupWithCustomType:(CZWMapViewCustomType)type delegate:delegate];
+        self.delegate = delegate;
     }
     return self;
 }
@@ -75,7 +73,9 @@
 - (instancetype)initWithFrame:(CGRect)frame CustomType:(CZWMapViewCustomType)type delegate:(id<BMKMapViewDelegate>)delegate{
     self = [super initWithFrame:frame];
     if (self) {
-        [self setupWithCustomType:type delegate:delegate];
+        [self setupWithCustomType:type];
+        self.delegate = delegate;
+        NSLog(@"self.frame = %@",NSStringFromCGRect(self.frame));
         self.compassPosition = CGPointMake(frame.size.width - 10, 10);
     }
     return self;

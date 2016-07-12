@@ -34,12 +34,19 @@ typedef NS_ENUM(NSUInteger, CZWMapAnnotationType) {
 
 @end
 
-@interface CZWMapView : BMKMapView 
+@interface CZWMapView : BMKMapView
+
 /**
- *  if delegate is nil, self(CZWMapView) will become the delegate for itself ;
+ *  delegate尽量为kCZWMapKit,在hander中要调用setupWithCustomType;
+ */
+- (instancetype)initWithDelegate:(id<BMKMapViewDelegate>)delegate;
+
+/**
+ *  进入setupWithCustomType方法中可以添加自定义新的地图样式,不需手动在hander中调用
  */
 - (instancetype)initWithFrame:(CGRect)frame CustomType:(CZWMapViewCustomType)type delegate:(id<BMKMapViewDelegate>)delegate;
-//- (instancetype)initWithCustomType:(CZWMapViewCustomType)type delegate:(id<BMKMapViewDelegate>)delegate;
+
+- (void)setupWithCustomType:(CZWMapViewCustomType)type;
 
 /**
  *  移动中心

@@ -193,8 +193,8 @@
 			buildConfigurationList = 51950D351D24B0F400092828 /* Build configuration list for PBXNativeTarget "CZWMapKit" */;
 			buildPhases = (
 				51950D1A1D24B0F400092828 /* Sources */,
-				51950D1B1D24B0F400092828 /* Frameworks */,
 				51950D1C1D24B0F400092828 /* Resources */,
+				51950D1B1D24B0F400092828 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -381,6 +381,7 @@
 				INFOPLIST_FILE = CZWMapKit/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tianqu.CZWMapKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -398,6 +399,7 @@
 				INFOPLIST_FILE = CZWMapKit/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tianqu.CZWMapKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

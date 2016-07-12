@@ -8,11 +8,12 @@
 
 #import "ViewController.h"
 
-@interface ViewController () //<BMKOfflineMapDelegate>
+@interface ViewController () <BMKOfflineMapDelegate>
 @property (weak, nonatomic) IBOutlet UILabel *label;
 @property (weak, nonatomic) IBOutlet UIButton *button;
 @property (weak, nonatomic) IBOutlet UIButton *deleteBtn;
 @property (weak, nonatomic) IBOutlet UIButton *addBtn;
+@property (weak, nonatomic) IBOutlet UIProgressView *progress;
 @property (strong, nonatomic) NSArray *hotCity;
 @property (strong, nonatomic) NSArray *offlineCity;
 @end
@@ -30,6 +31,7 @@
         [weakSelf.view addSubview:mapView];
     }];
 }
+
 - (IBAction)clickBtn:(UIButton *)sender {
 //    [kCZWMapKit czw_searchWalkingRoutePlanStarting:kCZWMapKit.cacheUserLocation.coordinate endLocationCoord:CLLocationCoordinate2DMake(23.140540, 113.346151) succeedBlock:^(BMKWalkingRouteLine *aRouteLine ,CZWMapView *mapView ,CZWMapKit *mapKit) {
 //        
@@ -55,7 +57,7 @@
     [kCZWMapKit czw_startLocatingSucceedBlock:^BOOL(CLLocationCoordinate2D coor, CZWMapKit *mapKit) {
         NSLog(@"定位成功,我的位置:(%f, %f)",coor.latitude, coor.longitude);
         [mapKit.mapView czw_moveMapViewToCenter:coor animated:YES];
-        [mapKit czw_reverseGeoCode:coor succeedBlock:^void(BMKReverseGeoCodeResult *geoResult, CZWMapKit *mapKit) {
+        [mapKit czw_reverseGeoCode:coor succeedBlock:^(BMKReverseGeoCodeResult *geoResult, CZWMapKit *mapKit) {
             weakSelf.label.text = geoResult.address;
         } failureBlock:^(BMKSearchErrorCode errorCode) {
             
@@ -64,47 +66,61 @@
     } failureBlock:^(NSError *errorCode) {
         
     }];
+//    __weak typeof(self) weakSelf = self;
+//    [kCZWMapKit czw_startDownLoadCity:257 succeedBlock:^(BMKOLUpdateElement *update) {
+//        weakSelf.progress.progress = update.ratio/100.0;
+//    } finishBlock:^(BOOL finish) {
+//        weakSelf.label.text = @"完成下载";
+//    }];
+//    [kCZWMapKit czw_startUpdateCity:131 succeedBlock:^(BMKOLUpdateElement *update) {
+//        weakSelf.progress.progress = update.ratio/100.0;
+//    } finishBlock:^(BOOL finish) {
+//        weakSelf.label.text = @"完成下载";
+//    }];
     
     [self.view bringSubviewToFront:self.deleteBtn];
     [self.view bringSubviewToFront:self.button];
     [self.view bringSubviewToFront:self.addBtn];
 }
 - (IBAction)clickDelete:(UIButton *)sender {
-    [kCZWMapKit removeAllService];
+    BOOL tt =  [kCZWMapKit.baiduOfflineMap remove:257];
+    NSLog(@" %@删除",tt?@"yes":@"no");
+    //[kCZWMapKit removeAllService];
 }
 - (IBAction)addBtn:(UIButton *)sender {
-        [kCZWMapKit czw_searchPoi_BusLine:@"256路" succeedBlock:^(NSMutableArray<BMKPoiInfo *> *poiInfos ,CZWMapKit *mapKit) {
-            for (BMKPoiInfo *aPoi in poiInfos) {
-                [mapKit czw_searchPoi_BusLineDetailWithUID:aPoi.uid succeedBlock:^(BMKBusLineResult *busLineResult ,CZWMapView *mapView ,CZWMapKit *mapKit) {
-                    if (busLineResult) {
-                        NSMutableArray <id<BMKAnnotation>> *array = [[NSMutableArray alloc]init];
-                        for (int i = 0; i < busLineResult.busStations.count; i ++) {
-                            BMKBusStation *aStation = busLineResult.busStations[i];
-                            CZWMapAnnotationType type = 0;
-                            if (i == 0) {
-                                type = CZWMapAnnotationTypeStarting;
-                            } else if (i == busLineResult.busStations.count - 1) {
-                                type = CZWMapAnnotationTypeTerminal;
-                            } else {
-                                type = CZWMapAnnotationTypeBus;
-                            }
-                            CZWMapAnnotation *an = [[CZWMapAnnotation alloc]initWithBusStation:aStation type:type];
-                            [array addObject:an];
-                        }
-                        BMKBusStation *firstStation = [busLineResult.busStations firstObject];
-                        [mapView czw_addStationAnnotation:array];
-                        [mapView czw_addBusLine:busLineResult.busSteps];
-                        [mapView czw_moveMapViewToCenter:firstStation.location animated:YES];
-                    }
-    
-                } failureBlock:^(BMKSearchErrorCode errorCode) {
-    
-                }];
-            }
-            
-        } failureBlock:^(BMKSearchErrorCode errorCode) {
-            
-        }];
+    BMKOLUpdateElement * ele = [kCZWMapKit.baiduOfflineMap getUpdateInfo:257];
+//        [kCZWMapKit czw_searchPoi_BusLine:@"256路" succeedBlock:^(NSMutableArray<BMKPoiInfo *> *poiInfos ,CZWMapKit *mapKit) {
+//            for (BMKPoiInfo *aPoi in poiInfos) {
+//                [mapKit czw_searchPoi_BusLineDetailWithUID:aPoi.uid succeedBlock:^(BMKBusLineResult *busLineResult ,CZWMapView *mapView ,CZWMapKit *mapKit) {
+//                    if (busLineResult) {
+//                        NSMutableArray <id<BMKAnnotation>> *array = [[NSMutableArray alloc]init];
+//                        for (int i = 0; i < busLineResult.busStations.count; i ++) {
+//                            BMKBusStation *aStation = busLineResult.busStations[i];
+//                            CZWMapAnnotationType type = 0;
+//                            if (i == 0) {
+//                                type = CZWMapAnnotationTypeStarting;
+//                            } else if (i == busLineResult.busStations.count - 1) {
+//                                type = CZWMapAnnotationTypeTerminal;
+//                            } else {
+//                                type = CZWMapAnnotationTypeBus;
+//                            }
+//                            CZWMapAnnotation *an = [[CZWMapAnnotation alloc]initWithBusStation:aStation type:type];
+//                            [array addObject:an];
+//                        }
+//                        BMKBusStation *firstStation = [busLineResult.busStations firstObject];
+//                        [mapView czw_addStationAnnotation:array];
+//                        [mapView czw_addBusLine:busLineResult.busSteps];
+//                        [mapView czw_moveMapViewToCenter:firstStation.location animated:YES];
+//                    }
+//    
+//                } failureBlock:^(BMKSearchErrorCode errorCode) {
+//    
+//                }];
+//            }
+//            
+//        } failureBlock:^(BMKSearchErrorCode errorCode) {
+//            
+//        }];
 }
 
 - (void)viewWillAppear:(BOOL)animated{
@@ -128,5 +144,11 @@
     } failureBlock:^(BMKSearchErrorCode errorCode) {
         
     }];
+}
+
+- (void)onGetOfflineMapState:(int)type withState:(int)state{
+    NSLog(@"type = %d, state = %d",type,state);
+
+ 
 }
 @end
